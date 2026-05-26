@@ -175,24 +175,16 @@
     =================== -->
     <nav id="sidebar" class="sidebar" aria-label="주 내비게이션">
       <ul class="nav-list">
-        <li><a href="#page-overview"      class="nav-item active"  data-section="briefing">    <span class="nav-icon">🏠</span><span class="nav-label">Overview</span></a></li>
+        <li><a href="#page-briefing"      class="nav-item active"  data-section="briefing">    <span class="nav-icon">🏠</span><span class="nav-label">Overview</span></a></li>
         <li><a href="#page-projects"      class="nav-item"         data-section="projects">    <span class="nav-icon">📁</span><span class="nav-label">Projects</span></a></li>
         <li><a href="#page-tasks"         class="nav-item"         data-section="tasks">       <span class="nav-icon">✅</span><span class="nav-label">Tasks</span></a></li>
         <li><a href="#page-calendar"      class="nav-item"         data-section="calendar">    <span class="nav-icon">📅</span><span class="nav-label">Calendar</span></a></li>
         <li><a href="#page-kpi"           class="nav-item"         data-section="kpi">         <span class="nav-icon">📊</span><span class="nav-label">KPI / 결산</span></a></li>
         <li><a href="#page-risk"          class="nav-item"         data-section="risk">        <span class="nav-icon">⚠️</span><span class="nav-label">Risk &amp; Issues</span></a></li>
-        <li><a href="#page-mail"          class="nav-item"         data-section="mail">        <span class="nav-icon">📧</span><span class="nav-label">Mail</span>   <span id="nav-mail-count" class="nav-badge"></span></a></li>
-        <li><a href="#page-feed"          class="nav-item"         data-section="feed">        <span class="nav-icon">📢</span><span class="nav-label">Announcements</span></a></li>
-        <li><a href="#page-teamchat"      class="nav-item"         data-section="teamchat">    <span class="nav-icon">💬</span><span class="nav-label">Team Chat</span></a></li>
+        <li><a href="#page-comms"         class="nav-item"         data-section="comms">       <span class="nav-icon">💬</span><span class="nav-label">Comms</span>   <span id="nav-mail-count" class="nav-badge"></span></a></li>
         <li><a href="#page-meeting"       class="nav-item"         data-section="meeting">     <span class="nav-icon">🎙️</span><span class="nav-label">Meeting AI</span></a></li>
         <li><a href="#page-expenses"      class="nav-item"         data-section="expenses">    <span class="nav-icon">💳</span><span class="nav-label">Expenses</span></a></li>
-        <li><a href="#page-postits"       class="nav-item"         data-section="postits">     <span class="nav-icon">🗒️</span><span class="nav-label">Post-it</span></a></li>
-        <li><a href="#page-branch"        class="nav-item"         data-section="branch">      <span class="nav-icon">🌿</span><span class="nav-label">Branch Model</span></a></li>
-        <li><a href="#page-exchange"      class="nav-item"         data-section="exchange">    <span class="nav-icon">💱</span><span class="nav-label">Exchange</span></a></li>
-        <li><a href="#page-resource"      class="nav-item"         data-section="resource">    <span class="nav-icon">👥</span><span class="nav-label">Resources</span></a></li>
         <li class="admin-nav-item is-admin-hidden"><a href="#page-admin" class="nav-item" data-section="admin">       <span class="nav-icon">🛡️</span><span class="nav-label">Admin</span></a></li>
-        <li><a href="#page-integrations"  class="nav-item"         data-section="integrations"><span class="nav-icon">🔌</span><span class="nav-label">Integrations</span></a></li>
-        <li><a href="#page-simulation"    class="nav-item"         data-section="simulation">  <span class="nav-icon">🔬</span><span class="nav-label">Simulation</span></a></li>
       </ul>
 
       <!-- 사이드바 하단: Health Score 미니 위젯 -->
@@ -247,7 +239,7 @@
               <button class="knowledge-chip knowledge-chip--core" data-page-target="briefing">Command Center</button>
               <button class="knowledge-chip knowledge-chip--projects" data-page-target="projects">Projects</button>
               <button class="knowledge-chip knowledge-chip--risk" data-page-target="risk">Risk</button>
-              <button class="knowledge-chip knowledge-chip--team" data-page-target="teamchat">Team Chat</button>
+              <button class="knowledge-chip knowledge-chip--team" data-page-target="comms">Comms</button>
               <button class="knowledge-chip knowledge-chip--meeting" data-page-target="meeting">Meeting AI</button>
               <button class="knowledge-chip knowledge-chip--expense" data-page-target="expenses">Expenses</button>
               <button class="knowledge-chip knowledge-chip--kpi" data-page-target="kpi">KPI</button>
@@ -310,6 +302,28 @@
               </select>
               <input id="music-volume" type="range" min="0" max="100" value="35" class="form-range" aria-label="음량" />
             </div>
+            <div class="wellness-grid" aria-label="집중 보조 루틴">
+              <div class="wellness-card">
+                <span>Focus</span>
+                <strong>25m</strong>
+                <small>딥워크 타이머</small>
+              </div>
+              <div class="wellness-card">
+                <span>Breath</span>
+                <strong>4-7-8</strong>
+                <small>긴장 완화</small>
+              </div>
+              <div class="wellness-card">
+                <span>Eye</span>
+                <strong>20s</strong>
+                <small>화면 휴식</small>
+              </div>
+              <div class="wellness-card">
+                <span>Reset</span>
+                <strong>3m</strong>
+                <small>회의 전 정리</small>
+              </div>
+            </div>
           </div>
           <div class="utility-panel card glass">
             <div class="utility-panel-title">Lunch Recommender</div>
@@ -324,6 +338,27 @@
               <button id="lunch-pick-btn" class="btn btn--ghost btn--sm">추천</button>
             </div>
             <div id="lunch-result" class="lunch-result"></div>
+            <div class="utility-note-stack">
+              <div class="utility-note"><strong>공유 문구</strong><span>추천 결과는 버튼 클릭으로 바로 복사됩니다.</span></div>
+              <div class="utility-note"><strong>반경 기준</strong><span>외대앞 2km 이내, 팀 이동 동선 중심</span></div>
+            </div>
+          </div>
+          <div class="utility-panel card glass">
+            <div class="utility-panel-title">Team Comfort Queue</div>
+            <div class="comfort-list">
+              <div><strong>10:30</strong><span>QA 집중 블록 · 알림 최소화</span></div>
+              <div><strong>14:00</strong><span>회의 전 요약 템플릿 자동 준비</span></div>
+              <div><strong>17:40</strong><span>일일 결산 메일 초안 생성</span></div>
+            </div>
+          </div>
+          <div class="utility-panel card glass">
+            <div class="utility-panel-title">Workspace Checklist</div>
+            <div class="workspace-checks">
+              <label><input type="checkbox" checked /> Slack 브릿지 확인</label>
+              <label><input type="checkbox" checked /> Google Sheet 경비 동기화</label>
+              <label><input type="checkbox" /> Railway 환경변수 최종 점검</label>
+              <label><input type="checkbox" /> 제출 URL 텍스트 파일 갱신</label>
+            </div>
           </div>
         </div>
       </section>
@@ -535,6 +570,7 @@
             <!-- AI 병합 추천 -->
           </div>
         </div>
+        <div id="branch-release-board" class="branch-release-board"></div>
       </section>
 
 
@@ -583,6 +619,23 @@
             <button id="sim-run-btn" class="btn btn--primary">
               ▶ 시뮬레이션 실행
             </button>
+          </div>
+          <div class="scenario-insight-grid" aria-label="시나리오 기본 분석">
+            <div class="scenario-insight-card">
+              <span>Delay Sensitivity</span>
+              <strong>High</strong>
+              <small>QA, 배포, 고객 데모가 연쇄 영향권에 있습니다.</small>
+            </div>
+            <div class="scenario-insight-card">
+              <span>Mitigation Window</span>
+              <strong>48h</strong>
+              <small>담당자 재배치와 범위 축소를 동시에 판단합니다.</small>
+            </div>
+            <div class="scenario-insight-card">
+              <span>Decision Owner</span>
+              <strong>PMO</strong>
+              <small>시뮬레이션 결과는 결정 로그로 연결됩니다.</small>
+            </div>
           </div>
           <div id="sim-result" class="sim-result hidden">
             <!-- JS로 결과 렌더링 -->
@@ -769,21 +822,6 @@
         <button id="copilot-toggle" class="icon-btn" aria-label="패널 닫기" title="AI 패널 접기/펼치기">◀</button>
       </div>
 
-      <!-- 조직 건강 점수 -->
-      <div id="health-widget" class="health-widget card glass">
-        <div class="health-label">조직 건강 점수</div>
-        <div class="health-help">프로젝트 지연, KPI 경고, 긴급 메일, 미완료 업무, 리소스 과부하를 합산한 운영 안정도입니다.</div>
-        <div class="health-score-row">
-          <span id="health-score-value" class="health-score-value">--</span>
-          <span class="health-score-max">/ 100</span>
-          <span id="health-status-badge" class="badge">--</span>
-        </div>
-        <div class="health-bar-wrap">
-          <div id="health-bar" class="health-bar"></div>
-        </div>
-        <div id="health-factors" class="health-factors"></div>
-      </div>
-
       <!-- 오늘의 추천 액션 -->
       <div id="action-rec-widget" class="action-rec-widget card glass">
         <div class="widget-title">
@@ -919,7 +957,7 @@
 <script src="js/presentation.js"></script>
 <script src="js/lawyer.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="js/integrations.js?v=20260526-admin-theme"></script>
+<script src="js/integrations.js?v=20260527-menu-admin-guide"></script>
 
 </body>
 </html>

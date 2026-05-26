@@ -20,85 +20,102 @@ function buildPresentationSteps() {
   const dangerProj = projects.filter(p => p.status === 'danger')[0];
   const redKpi     = kpis.find(k => getKpiStatus(k.current, k.target) === 'red');
   const topTask    = getSortedTasks().filter(t => !t.isDone)[0];
-  const qaRisk     = risks.find(r => r.category === 'Weakness' && r.urgency >= 8);
+  const unreadMails = mails.filter(m => m.unread && !AppState.repliedMails?.has(m.id)).length;
 
   return [
     {
       id: 1,
+      pageKey: 'briefing',
       targetId: 'briefing-card',
-      title: '① AI Daily Briefing',
-      body: `오늘의 조직 상태를 AI가 자동 분석한 브리핑입니다.<br>
-             현재 상태 <span class="pres-highlight-text">${status}</span> —
-             위험 프로젝트, KPI 경고, 긴급 메일 현황을 한 문장으로 요약합니다.<br>
-             <br>하단의 <strong>추천 액션 칩</strong>은 우선순위 계산식 기반으로 자동 생성됩니다.`,
+      title: '① Overview Command Center',
+      body: `최종 제출본은 메뉴별 페이지 방식으로 재구성되었습니다.<br>
+             현재 상태는 <span class="pres-highlight-text">${status}</span>, 조직 건강 점수는
+             <span class="pres-highlight-text">${score}점</span>입니다.<br>
+             <br>Overview는 브리핑, 지식 지도, 포스트잇, 업무 유틸리티, 환율 비용 신호를 한 번에 확인하는 시작 화면입니다.`,
       position: 'below'
     },
     {
       id: 2,
-      targetId: 'health-widget',
-      title: '② Organization Health Score',
-      body: `조직 건강 점수 <span class="pres-highlight-text">${score}점</span> — 위험 프로젝트 수, KPI 경고 수,
-             지연 업무, 긴급 메일, 팀 과부하 5개 지표를 종합 계산합니다.<br>
-             <br>감점/가점 요인이 패널 하단에 상세 표시됩니다.`,
-      position: 'left'
+      pageKey: 'briefing',
+      targetId: 'neural-map',
+      title: '② Command Knowledge Map',
+      body: `옵시디언 스타일의 지식 구조도입니다.<br>
+             각 노드는 프로젝트, 결산, 리스크, 회의, 커뮤니케이션 기능을 연결해
+             메인 화면에서 전체 업무 흐름을 조율하는 역할을 합니다.`,
+      position: 'below'
     },
     {
       id: 3,
+      pageKey: 'projects',
       targetId: dangerProj ? `project-card-${dangerProj.id}` : 'projects-list',
-      title: '③ 위험 프로젝트 감지',
+      title: '③ Projects + Decisions',
       body: dangerProj
         ? `<strong>${dangerProj.name}</strong>이 마감 <span class="pres-highlight-text">${getDdayLabel(dangerProj.deadline)}</span> 상태로
            진행률 ${dangerProj.progress}%에 불과합니다.<br>
-           <br>카드 좌측 붉은 라인은 <strong>위험(danger)</strong> 상태를 즉시 식별할 수 있도록 강조됩니다.`
-        : '현재 위험 프로젝트가 없는 정상 상태입니다.',
+           <br>Projects 페이지에는 마일스톤, 카운트다운, 의사결정 로그가 함께 묶여 있어 빈 화면 없이 프로젝트 판단을 이어갈 수 있습니다.`
+        : '현재 위험 프로젝트가 없는 정상 상태입니다. Projects 페이지에서는 마일스톤과 결정 로그를 함께 확인합니다.',
       position: 'right'
     },
     {
       id: 4,
+      pageKey: 'kpi',
       targetId: 'kpi-grid',
-      title: '④ KPI Traffic Light',
+      title: '④ KPI / 결산',
       body: redKpi
         ? `<strong>${redKpi.name}</strong>이 현재 <span class="pres-highlight-text">${redKpi.current}${redKpi.unit}</span> —
            목표(${redKpi.target}${redKpi.unit}) 대비 미달입니다.<br>
-           <br>신호등 색상이 자동으로 결정되며, 클릭 시 AI 개선 제안이 펼쳐집니다.`
-        : '현재 모든 KPI가 목표를 달성 중입니다.',
+           <br>KPI 페이지는 신호등 지표와 일일·주간·월간·분기·연간 결산 분석을 함께 보여줍니다.`
+        : '현재 모든 KPI가 목표를 달성 중입니다. 결산 분석은 같은 페이지에서 기간별로 전환됩니다.',
       position: 'below'
     },
     {
       id: 5,
-      targetId: 'swot-matrix',
-      title: '⑤ SWOT Risk Matrix',
-      body: qaRisk
-        ? `<strong>${qaRisk.title}</strong>이 Weakness 영역에 <span class="pres-highlight-text">우선순위 ${calculateRiskPriority(qaRisk)}점</span>으로 분류되었습니다.<br>
-           <br>80점 이상 위험 태그는 pulse 애니메이션으로 강조됩니다. 태그 클릭 시 AI 권장 조치 3개가 포함된 상세 모달이 열립니다.`
-        : 'SWOT 분석으로 조직의 강점·약점·기회·위협을 한눈에 파악합니다.',
+      pageKey: 'risk',
+      targetId: 'section-simulation',
+      title: '⑤ Risk + Scenario Simulation',
+      body: `Risk 페이지는 SWOT, Hot Issue, 시나리오 시뮬레이션을 통합했습니다.<br>
+             지연 일수를 조정하면 KPI, 조직 건강 점수, 배포 지연, 고객 영향을 한 번에 예측합니다.`,
       position: 'below'
     },
     {
       id: 6,
+      pageKey: 'tasks',
       targetId: 'tasks-list',
-      title: '⑥ Priority Task Queue',
+      title: '⑥ Tasks + Resources',
       body: topTask
         ? `최우선 업무 <strong>"${topTask.title}"</strong>가 우선순위 점수 <span class="pres-highlight-text">${topTask.priorityScore}점</span>으로 최상단에 배치됩니다.<br>
-           <br>긴급도 × 영향도 × 마감점수 × KPI영향도 × 병목점수 공식으로 자동 정렬됩니다.`
-        : '모든 업무가 완료된 상태입니다.',
+           <br>Tasks 페이지에는 팀 리소스 부하도 함께 배치해 담당자 병목을 바로 확인합니다.`
+        : '모든 업무가 완료된 상태입니다. 팀 리소스 부하는 같은 페이지에서 확인합니다.',
       position: 'below'
     },
     {
       id: 7,
-      targetId: 'action-rec-widget',
-      title: '⑦ AI 추천 액션',
-      body: `AI가 대시보드 전체 데이터를 분석해 <strong>오늘 해야 할 액션 5개</strong>를 자동 생성합니다.<br>
-             <br>긴급 업무 → 메일 SLA → 브랜치 위험 → 리소스 과부하 → KPI 경고 순으로 우선순위가 결정됩니다.`,
-      position: 'left'
+      pageKey: 'meeting',
+      targetId: 'section-meeting-ai',
+      title: '⑦ Meeting Audio AI',
+      body: `회의 녹음 파일을 업로드하면 전사와 Meeting Summary.md를 생성합니다.<br>
+             MP3, WAV, WEBM뿐 아니라 <span class="pres-highlight-text">M4A</span> 업로드도 지원하도록 반영했습니다.`,
+      position: 'below'
     },
     {
       id: 8,
-      targetId: 'telegram-log-widget',
-      title: '⑧ Telegram Alert Simulation',
-      body: `업무 카드의 <strong>✈️ 전송 버튼</strong>을 누르면 담당자에게 Telegram 긴급 알림이 전송됩니다.<br>
-             <br>실제 API 없이도 전송 시뮬레이션이 동작하며, 전송 기록이 <span class="pres-highlight-text">LocalStorage</span>에 저장됩니다.`,
-      position: 'left'
+      pageKey: 'expenses',
+      targetId: 'section-expense',
+      title: '⑧ Expenses + Settlement',
+      body: `Shared Expense Dashboard는 Google Sheet 경비 데이터를 동기화하고,
+             파스텔 도넛 차트와 기간별 결산 분석으로 보여줍니다.<br>
+             일일 결산 메일은 Gmail Webhook 연결 시 실제 발송됩니다.`,
+      position: 'below'
+    },
+    {
+      id: 9,
+      pageKey: 'comms',
+      targetId: 'section-teamchat',
+      title: '⑨ Comms + Admin Access',
+      body: `메일, 공지, 팀 채팅, Daily Summary Mail은 Comms 메뉴로 통합했습니다.<br>
+             읽지 않은 메일은 <span class="pres-highlight-text">${unreadMails}건</span>이며,
+             우측 상단 Admin 버튼에서 관리자 로그인과 로그아웃을 처리합니다.`,
+      position: 'below'
     }
   ];
 }
@@ -236,6 +253,9 @@ function showStep(index) {
   updateProgressDots(index);
 
   // 대상 요소 하이라이트
+  if (step.pageKey && typeof showDashboardPage === 'function') {
+    showDashboardPage(step.pageKey, { instant: true, focus: false });
+  }
   highlightTarget(step.targetId, step.position);
 }
 

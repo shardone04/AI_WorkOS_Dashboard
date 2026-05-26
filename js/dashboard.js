@@ -1114,24 +1114,25 @@ function renderTelegramLogs() {
 ============================================== */
 
 const DashboardPageMap = {
-  briefing: ['section-briefing', 'section-summary', 'section-neural-map', 'section-postits', 'section-work-utilities'],
+  briefing: ['section-briefing', 'section-summary', 'section-neural-map', 'section-postits', 'section-work-utilities', 'section-exchange'],
   projects: ['section-projects', 'section-countdown', 'section-decision'],
   tasks: ['section-tasks', 'section-resource'],
-  calendar: ['section-calendar', 'section-meeting-ai'],
+  calendar: ['section-calendar'],
   kpi: ['section-kpi', 'section-settlement'],
-  risk: ['section-risk', 'section-hotissue'],
-  mail: ['section-mail', 'section-gmail-automation'],
-  feed: ['section-feed'],
-  teamchat: ['section-teamchat'],
+  risk: ['section-risk', 'section-hotissue', 'section-simulation'],
+  comms: ['section-mail', 'section-feed', 'section-teamchat', 'section-gmail-automation'],
   meeting: ['section-meeting-ai'],
   expenses: ['section-expense', 'section-settlement'],
-  postits: ['section-postits', 'section-settlement'],
-  branch: ['section-branch'],
-  exchange: ['section-exchange'],
-  resource: ['section-resource'],
-  admin: ['section-admin'],
-  integrations: ['section-integrations', 'section-gmail-automation'],
-  simulation: ['section-simulation']
+  admin: ['section-admin', 'section-branch', 'section-integrations'],
+  mail: ['section-mail', 'section-feed', 'section-teamchat', 'section-gmail-automation'],
+  feed: ['section-mail', 'section-feed', 'section-teamchat', 'section-gmail-automation'],
+  teamchat: ['section-mail', 'section-feed', 'section-teamchat', 'section-gmail-automation'],
+  postits: ['section-briefing', 'section-summary', 'section-neural-map', 'section-postits', 'section-work-utilities', 'section-exchange'],
+  branch: ['section-admin', 'section-branch', 'section-integrations'],
+  exchange: ['section-briefing', 'section-summary', 'section-neural-map', 'section-postits', 'section-work-utilities', 'section-exchange'],
+  resource: ['section-tasks', 'section-resource'],
+  integrations: ['section-admin', 'section-branch', 'section-integrations'],
+  simulation: ['section-risk', 'section-hotissue', 'section-simulation']
 };
 
 function getPageKeyForSection(sectionId) {
@@ -1141,7 +1142,8 @@ function getPageKeyForSection(sectionId) {
 }
 
 function showDashboardPage(pageKey = 'briefing', options = {}) {
-  if (pageKey === 'admin' && !window.FinalRuntime?.isAdmin) {
+  const adminOnlyPages = new Set(['admin', 'branch', 'integrations']);
+  if (adminOnlyPages.has(pageKey) && !window.FinalRuntime?.isAdmin) {
     if (typeof openAdminLoginModal === 'function') openAdminLoginModal();
     pageKey = 'briefing';
   }
@@ -1986,6 +1988,7 @@ function showHotIssueDetail(issueId) {
 function renderBranchModel() {
   const graph = document.getElementById('branch-graph');
   const aiRec = document.getElementById('branch-ai-rec');
+  const releaseBoard = document.getElementById('branch-release-board');
   if (!graph) return;
 
   const typeClass = {
@@ -2044,6 +2047,31 @@ function renderBranchModel() {
         onclick="sendTelegramAlert('risk', 6); showToast('DevOps 알림', 'Merge 권장사항이 DevOps팀에 전송되었습니다.', 'info');">
         ✈️ DevOps팀에 전송
       </button>
+    `;
+  }
+
+  if (releaseBoard) {
+    const highRisk = branches.filter(b => b.conflictRisk === 'high').length;
+    const activePrs = branches.reduce((sum, b) => sum + Number(b.prCount || 0), 0);
+    releaseBoard.innerHTML = `
+      <div class="branch-release-card card glass">
+        <div class="utility-panel-title">Admin Release Controls</div>
+        <div class="branch-release-metrics">
+          <div><span>Open PR</span><strong>${activePrs}</strong></div>
+          <div><span>Conflict Risk</span><strong>${highRisk}</strong></div>
+          <div><span>Deploy Lane</span><strong>staging</strong></div>
+          <div><span>Owner</span><strong>DevOps</strong></div>
+        </div>
+      </div>
+      <div class="branch-release-card card glass">
+        <div class="utility-panel-title">Merge Gate Checklist</div>
+        <div class="workspace-checks compact">
+          <label><input type="checkbox" checked /> feature/payment QA 통과 후 병합</label>
+          <label><input type="checkbox" checked /> hotfix/login-timeout main 반영</label>
+          <label><input type="checkbox" /> release/v1.3 staging smoke test</label>
+          <label><input type="checkbox" /> AI chatbot 베타 일정 재확인</label>
+        </div>
+      </div>
     `;
   }
 }

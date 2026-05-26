@@ -234,9 +234,16 @@ function updateHeaderIdentity() {
     if (avatar) avatar.textContent = initials;
     if (name) name.textContent = user.name || user.email;
     if (role) role.textContent = user.provider === 'google' ? 'Google Verified' : 'Google Demo';
-    if (googleBtn) googleBtn.innerHTML = '<span>G</span> <span class="google-auth-label">On</span>';
+    if (googleBtn) {
+      googleBtn.classList.add('google-auth-hidden');
+      googleBtn.setAttribute('aria-hidden', 'true');
+      googleBtn.tabIndex = -1;
+    }
   } else if (googleBtn) {
-    googleBtn.innerHTML = '<span>G</span> <span class="google-auth-label">Login</span>';
+    googleBtn.classList.remove('google-auth-hidden');
+    googleBtn.setAttribute('aria-hidden', 'false');
+    googleBtn.tabIndex = 0;
+    googleBtn.innerHTML = '<span>G</span> <span class="google-auth-label">Google</span>';
   }
 }
 
@@ -892,20 +899,28 @@ function renderExpenseTable(rows) {
 
 function renderExpenseChart(rows) {
   const canvas = document.getElementById('expense-category-chart');
-  if (!canvas || typeof Chart === 'undefined') return;
-  if (FinalRuntime.expenseChart) FinalRuntime.expenseChart.destroy();
-
+  if (!canvas) return;
   const grouped = aggregateBy(rows, 'category');
   const labels = Object.keys(grouped);
   const values = Object.values(grouped);
+  const pastelPalette = ['#9ADBE8', '#BBA7E8', '#F5D98B', '#A8DDB5', '#F4BD8A', '#F1A3A8', '#9EB7EE'];
+
+  if (typeof Chart === 'undefined') {
+    drawFallbackExpenseDoughnut(canvas, labels, values, pastelPalette);
+    return;
+  }
+
+  if (FinalRuntime.expenseChart) FinalRuntime.expenseChart.destroy();
   FinalRuntime.expenseChart = new Chart(canvas, {
     type: 'doughnut',
     data: {
       labels,
       datasets: [{
         data: values,
-        backgroundColor: ['#22D3EE', '#3B82F6', '#FACC15', '#22C55E', '#F97316', '#EF4444', '#8B5CF6'],
-        borderWidth: 0
+        backgroundColor: pastelPalette,
+        borderColor: 'rgba(255,255,255,0.55)',
+        borderWidth: 2,
+        hoverOffset: 5
       }]
     },
     options: {
@@ -915,6 +930,63 @@ function renderExpenseChart(rows) {
         legend: { position: 'bottom', labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-sub') } }
       }
     }
+  });
+}
+
+function drawFallbackExpenseDoughnut(canvas, labels, values, colors) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const rect = canvas.parentElement?.getBoundingClientRect();
+  const cssWidth = Math.max(260, Math.round(rect?.width || 320));
+  const cssHeight = Math.max(240, Math.round(rect?.height || 280));
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  canvas.style.width = `${cssWidth}px`;
+  canvas.style.height = `${cssHeight}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+  const total = values.reduce((sum, value) => sum + Number(value || 0), 0) || 1;
+  const cx = Math.round(cssWidth * 0.42);
+  const cy = Math.round(cssHeight * 0.46);
+  const radius = Math.min(cssWidth, cssHeight) * 0.28;
+  const inner = radius * 0.58;
+  let start = -Math.PI / 2;
+
+  values.forEach((value, index) => {
+    const angle = (Number(value || 0) / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, start, start + angle);
+    ctx.closePath();
+    ctx.fillStyle = colors[index % colors.length];
+    ctx.fill();
+    start += angle;
+  });
+
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.arc(cx, cy, inner, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim() || '#f5f2ea';
+  ctx.font = '800 18px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(formatWon(total).replace('₩', ''), cx, cy + 4);
+
+  ctx.textAlign = 'left';
+  ctx.font = '700 11px Inter, sans-serif';
+  const legendX = Math.min(cssWidth - 130, cx + radius + 28);
+  const legendY = 36;
+  labels.slice(0, 7).forEach((label, index) => {
+    const y = legendY + index * 24;
+    ctx.fillStyle = colors[index % colors.length];
+    ctx.fillRect(legendX, y - 9, 12, 12);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-sub').trim() || '#c7d0df';
+    ctx.fillText(label, legendX + 18, y);
   });
 }
 
@@ -1064,9 +1136,33 @@ function updateGmailStatus() {
 ============================================== */
 
 function initAdminConsole() {
-  document.getElementById('admin-entry-btn')?.addEventListener('click', openAdminLoginModal);
+  document.getElementById('admin-entry-btn')?.addEventListener('click', () => {
+    FinalRuntime.isAdmin ? openAdminSessionModal() : openAdminLoginModal();
+  });
   document.getElementById('admin-logout-btn')?.addEventListener('click', logoutAdmin);
   renderAdminConsole();
+}
+
+function openAdminSessionModal() {
+  openModal(`
+    <div class="modal-title">관리자 세션</div>
+    <div class="modal-body">
+      <div class="admin-login-hint" style="margin-bottom:14px;">현재 관리자 권한이 활성화되어 있습니다.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="admin-open-console-btn" class="btn btn--primary">Admin Console 열기</button>
+        <button id="admin-session-logout-btn" class="btn btn--danger">로그아웃</button>
+        <button class="btn btn--ghost" onclick="closeModal()">취소</button>
+      </div>
+    </div>
+  `);
+
+  setTimeout(() => {
+    document.getElementById('admin-open-console-btn')?.addEventListener('click', () => {
+      closeModal();
+      showDashboardPage('admin');
+    });
+    document.getElementById('admin-session-logout-btn')?.addEventListener('click', logoutAdmin);
+  }, 30);
 }
 
 function openAdminLoginModal() {
@@ -1135,8 +1231,10 @@ async function loginAdmin() {
 function logoutAdmin() {
   FinalRuntime.isAdmin = false;
   removeFromLocalStorage('adminSession');
+  closeModal();
   renderAdminConsole();
   showDashboardPage('briefing');
+  showToast('관리자 로그아웃', '관리자 메뉴를 다시 숨겼습니다.', 'info');
 }
 
 function getAccessSettings() {
@@ -1168,8 +1266,9 @@ function renderAdminConsole() {
   if (entryBtn) {
     entryBtn.classList.toggle('admin-entry-active', FinalRuntime.isAdmin);
     entryBtn.innerHTML = FinalRuntime.isAdmin
-      ? '<span>🛡️</span> <span class="admin-entry-label">Admin On</span>'
+      ? '<span>🛡️</span> <span class="admin-entry-label">Admin</span>'
       : '<span>🛡️</span> <span class="admin-entry-label">Admin</span>';
+    entryBtn.title = FinalRuntime.isAdmin ? '관리자 콘솔 / 로그아웃' : '관리자 로그인';
   }
 
   consoleCard?.classList.toggle('hidden', !FinalRuntime.isAdmin);

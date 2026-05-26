@@ -7416,6 +7416,181 @@ html[data-theme="light"] .badge--muted {
   background: rgba(168, 221, 181, 0.10) !important;
 }
 
+.google-auth-hidden {
+  display: none !important;
+}
+
+#section-admin { order: 1; }
+#section-branch { order: 2; }
+#section-integrations { order: 3; }
+
+.utility-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)) !important;
+  align-items: stretch;
+}
+
+.utility-panel {
+  min-height: 224px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wellness-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.wellness-card,
+.scenario-insight-card,
+.utility-note,
+.comfort-list > div,
+.branch-release-metrics > div {
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.wellness-card {
+  min-height: 72px;
+  padding: 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.wellness-card span,
+.scenario-insight-card span,
+.branch-release-metrics span {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.wellness-card strong,
+.scenario-insight-card strong,
+.branch-release-metrics strong {
+  color: var(--text-main);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.wellness-card small,
+.scenario-insight-card small {
+  color: var(--text-sub);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.utility-note-stack,
+.comfort-list,
+.workspace-checks {
+  display: grid;
+  gap: 8px;
+}
+
+.utility-note,
+.comfort-list > div {
+  padding: 10px 12px;
+  display: grid;
+  gap: 2px;
+}
+
+.utility-note strong,
+.comfort-list strong {
+  color: var(--accent-cyan);
+  font-size: 12px;
+}
+
+.utility-note span,
+.comfort-list span {
+  color: var(--text-sub);
+  font-size: 12px;
+}
+
+.workspace-checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-sub);
+  font-size: 12px;
+}
+
+.workspace-checks.compact label {
+  min-height: 30px;
+}
+
+.scenario-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.scenario-insight-card {
+  min-height: 118px;
+  padding: 14px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.branch-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.44fr) !important;
+}
+
+.branch-release-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.branch-release-card {
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.branch-release-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.branch-release-metrics > div {
+  min-height: 82px;
+  padding: 12px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+html[data-theme="light"] :is(.wellness-card, .scenario-insight-card, .utility-note, .comfort-list > div, .workspace-checks label, .branch-release-metrics > div) {
+  background: #f7faff !important;
+  color: #243045 !important;
+}
+
+@media (max-width: 1180px) {
+  .branch-layout,
+  .branch-release-board,
+  .scenario-insight-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .branch-release-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .neural-shell {
   grid-template-columns: minmax(0, 1fr) 240px !important;
 }
