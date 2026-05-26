@@ -1141,6 +1141,11 @@ function getPageKeyForSection(sectionId) {
 }
 
 function showDashboardPage(pageKey = 'briefing', options = {}) {
+  if (pageKey === 'admin' && !window.FinalRuntime?.isAdmin) {
+    if (typeof openAdminLoginModal === 'function') openAdminLoginModal();
+    pageKey = 'briefing';
+  }
+
   const pageSections = DashboardPageMap[pageKey] || DashboardPageMap.briefing;
   const allSections = document.querySelectorAll('#main-content > .section');
   const main = document.getElementById('main-content');

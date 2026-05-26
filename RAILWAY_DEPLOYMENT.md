@@ -38,6 +38,8 @@ GMAIL_WEBHOOK_URL=
 - `POST /api/transcribe`: OpenAI Audio transcription 또는 데모 전사 반환
 - `POST /api/gmail/daily-summary`: Gmail/Apps Script Webhook으로 일일 결산 발송
 
+Gmail 실제 발송 설정은 `docs/gmail-webhook-setup.md`를 참고하세요.
+
 ## 참고 문서
 
 - Railway start command: https://docs.railway.com/guides/start-command

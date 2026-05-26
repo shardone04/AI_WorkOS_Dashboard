@@ -32,6 +32,8 @@ const FinalRuntime = {
   }
 };
 
+window.FinalRuntime = FinalRuntime;
+
 const teamMembers = [
   { id: 'admin', name: '사지윤', role: 'Ops Manager', team: 'PMO', status: 'online' },
   { id: 'soyeon', name: '김소연', role: 'Frontend Lead', team: 'Frontend', status: 'online' },
@@ -94,8 +96,19 @@ async function initFinalIntegrations() {
   initSettlementAnalytics();
   initGmailAutomation();
   initAdminConsole();
+  initThemeSensitiveRerender();
   renderIntegrationStatus();
   updateHeaderIdentity();
+}
+
+function initThemeSensitiveRerender() {
+  new MutationObserver(() => {
+    window.requestAnimationFrame(() => {
+      renderKnowledgeMapCanvas();
+      renderExpenseChart(FinalRuntime.expenseRows.length ? FinalRuntime.expenseRows : sampleExpenses);
+      renderSettlementAnalytics();
+    });
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 }
 
 async function loadIntegrationConfig() {
@@ -237,6 +250,124 @@ function initNeuralMap() {
       const page = btn.dataset.pageTarget;
       if (typeof showDashboardPage === 'function') showDashboardPage(page);
     });
+  });
+  renderKnowledgeMapCanvas();
+  window.addEventListener('resize', () => window.requestAnimationFrame(renderKnowledgeMapCanvas));
+  new MutationObserver(() => window.requestAnimationFrame(renderKnowledgeMapCanvas))
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
+function seededRandom(seed) {
+  let value = seed % 2147483647;
+  return () => {
+    value = value * 16807 % 2147483647;
+    return (value - 1) / 2147483646;
+  };
+}
+
+function renderKnowledgeMapCanvas() {
+  const canvas = document.getElementById('knowledge-map-canvas');
+  const wrap = document.getElementById('neural-map');
+  if (!canvas || !wrap) return;
+
+  const rect = wrap.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.max(720, Math.floor(rect.width));
+  const height = Math.max(420, Math.floor(rect.height));
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const styles = getComputedStyle(document.documentElement);
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const rand = seededRandom(2050);
+  const cx = width * 0.52;
+  const cy = height * 0.56;
+
+  const nodes = [];
+  const addNode = (x, y, radius, group = 'core', hub = false) => {
+    nodes.push({ x, y, radius, group, hub });
+    return nodes[nodes.length - 1];
+  };
+
+  const core = addNode(cx, cy, 8, 'core', true);
+  const hubs = [
+    addNode(width * 0.32, height * 0.43, 5.5, 'projects', true),
+    addNode(width * 0.63, height * 0.44, 5.5, 'risk', true),
+    addNode(width * 0.50, height * 0.78, 5, 'meeting', true),
+    addNode(width * 0.78, height * 0.60, 5, 'team', true),
+    addNode(width * 0.36, height * 0.74, 5, 'expense', true),
+    addNode(width * 0.69, height * 0.23, 5.5, 'kpi', true)
+  ];
+
+  for (let i = 0; i < 220; i += 1) {
+    const angle = rand() * Math.PI * 2;
+    const dist = Math.pow(rand(), 0.58) * Math.min(width, height) * 0.44;
+    const noise = (rand() - 0.5) * 46;
+    addNode(cx + Math.cos(angle) * dist + noise, cy + Math.sin(angle) * dist + noise, rand() > 0.9 ? 2.4 : 1.65, rand() > 0.78 ? 'purple' : 'white');
+  }
+
+  hubs.forEach((hub, hubIndex) => {
+    const count = 38 + hubIndex * 3;
+    for (let i = 0; i < count; i += 1) {
+      const angle = rand() * Math.PI * 2;
+      const dist = 18 + rand() * 82;
+      addNode(hub.x + Math.cos(angle) * dist, hub.y + Math.sin(angle) * dist, rand() > 0.82 ? 2.5 : 1.7, hubIndex % 2 ? 'purple' : 'white');
+    }
+  });
+
+  for (let i = 0; i < 80; i += 1) {
+    const side = i % 4;
+    const x = side === 0 ? width * 0.08 + rand() * 80 : side === 1 ? width * 0.9 - rand() * 80 : rand() * width;
+    const y = side === 2 ? height * 0.08 + rand() * 80 : side === 3 ? height * 0.9 - rand() * 80 : rand() * height;
+    addNode(x, y, 1.55, rand() > 0.86 ? 'purple' : 'white');
+  }
+
+  const lineColor = isLight ? 'rgba(98, 132, 198, 0.32)' : 'rgba(151, 176, 230, 0.34)';
+  const hubLineColor = isLight ? 'rgba(113, 93, 171, 0.36)' : 'rgba(172, 152, 226, 0.35)';
+  const white = isLight ? '#445062' : '#f8f7ef';
+  const purple = styles.getPropertyValue('--accent-purple').trim() || '#bba7e8';
+
+  ctx.lineWidth = 0.75;
+  nodes.forEach((node, i) => {
+    const nearest = [];
+    for (let j = i + 1; j < nodes.length; j += 1) {
+      const other = nodes[j];
+      const dx = other.x - node.x;
+      const dy = other.y - node.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 74) nearest.push({ other, d });
+    }
+    nearest.sort((a, b) => a.d - b.d).slice(0, node.hub ? 14 : 2).forEach(({ other, d }) => {
+      ctx.strokeStyle = node.hub || other.hub ? hubLineColor : lineColor;
+      ctx.globalAlpha = Math.max(0.16, 1 - d / 86);
+      ctx.beginPath();
+      ctx.moveTo(node.x, node.y);
+      ctx.lineTo(other.x, other.y);
+      ctx.stroke();
+    });
+  });
+
+  hubs.forEach(hub => {
+    ctx.strokeStyle = hubLineColor;
+    ctx.globalAlpha = 0.42;
+    ctx.beginPath();
+    ctx.moveTo(core.x, core.y);
+    ctx.lineTo(hub.x, hub.y);
+    ctx.stroke();
+  });
+
+  ctx.globalAlpha = 1;
+  nodes.forEach(node => {
+    ctx.beginPath();
+    ctx.fillStyle = node.group === 'purple' || ['kpi', 'meeting', 'expense'].includes(node.group) ? purple : white;
+    ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+    ctx.fill();
   });
 }
 
@@ -933,12 +1064,41 @@ function updateGmailStatus() {
 ============================================== */
 
 function initAdminConsole() {
-  document.getElementById('admin-login-btn')?.addEventListener('click', loginAdmin);
-  document.getElementById('admin-password-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') loginAdmin();
-  });
+  document.getElementById('admin-entry-btn')?.addEventListener('click', openAdminLoginModal);
   document.getElementById('admin-logout-btn')?.addEventListener('click', logoutAdmin);
   renderAdminConsole();
+}
+
+function openAdminLoginModal() {
+  if (FinalRuntime.isAdmin) {
+    showDashboardPage('admin');
+    return;
+  }
+
+  openModal(`
+    <div class="modal-title">관리자 로그인</div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label for="admin-password-input">관리자 비밀번호</label>
+        <input id="admin-password-input" class="form-input" type="password" placeholder="관리자 비밀번호 입력" autocomplete="current-password" />
+      </div>
+      <div class="admin-login-hint" style="margin-bottom:14px;">데모 기본값: ADMIN-2026</div>
+      <div style="display:flex;gap:8px;">
+        <button id="admin-login-btn" class="btn btn--primary">로그인</button>
+        <button class="btn btn--ghost" onclick="closeModal()">취소</button>
+      </div>
+    </div>
+  `);
+
+  setTimeout(() => {
+    const input = document.getElementById('admin-password-input');
+    const btn = document.getElementById('admin-login-btn');
+    input?.focus();
+    input?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') loginAdmin();
+    });
+    btn?.addEventListener('click', loginAdmin);
+  }, 30);
 }
 
 function isAdminSessionActive() {
@@ -966,7 +1126,9 @@ async function loginAdmin() {
   FinalRuntime.isAdmin = true;
   saveToLocalStorage('adminSession', { until: Date.now() + 1000 * 60 * 60 * 2 });
   if (input) input.value = '';
+  closeModal();
   renderAdminConsole();
+  showDashboardPage('admin');
   showToast('관리자 로그인', '관리자 콘솔이 활성화되었습니다.', 'success');
 }
 
@@ -974,6 +1136,7 @@ function logoutAdmin() {
   FinalRuntime.isAdmin = false;
   removeFromLocalStorage('adminSession');
   renderAdminConsole();
+  showDashboardPage('briefing');
 }
 
 function getAccessSettings() {
@@ -991,13 +1154,24 @@ function saveAccessSettings(settings) {
 
 function renderAdminConsole() {
   const status = document.getElementById('admin-status-badge');
-  const login = document.getElementById('admin-login-card');
   const consoleCard = document.getElementById('admin-console-card');
+  const navItem = document.querySelector('.admin-nav-item');
+  const entryBtn = document.getElementById('admin-entry-btn');
+
   if (status) {
     status.className = FinalRuntime.isAdmin ? 'badge badge--success' : 'badge badge--warning';
     status.textContent = FinalRuntime.isAdmin ? '활성' : '잠김';
   }
-  login?.classList.toggle('hidden', FinalRuntime.isAdmin);
+
+  navItem?.classList.toggle('is-admin-hidden', !FinalRuntime.isAdmin);
+  navItem?.setAttribute('aria-hidden', String(!FinalRuntime.isAdmin));
+  if (entryBtn) {
+    entryBtn.classList.toggle('admin-entry-active', FinalRuntime.isAdmin);
+    entryBtn.innerHTML = FinalRuntime.isAdmin
+      ? '<span>🛡️</span> <span class="admin-entry-label">Admin On</span>'
+      : '<span>🛡️</span> <span class="admin-entry-label">Admin</span>';
+  }
+
   consoleCard?.classList.toggle('hidden', !FinalRuntime.isAdmin);
   if (FinalRuntime.isAdmin) {
     renderAdminTeamGrid();

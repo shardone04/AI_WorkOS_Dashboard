@@ -149,6 +149,11 @@
         <span>G</span> <span class="google-auth-label">Login</span>
       </button>
 
+      <!-- Admin Login -->
+      <button id="admin-entry-btn" class="btn btn--ghost btn--sm" aria-label="관리자 로그인">
+        <span>🛡️</span> <span class="admin-entry-label">Admin</span>
+      </button>
+
       <!-- 사용자 프로필 -->
       <div class="user-profile" id="user-profile-btn" style="cursor:pointer" title="프로필 / 설정">
         <div class="avatar" aria-hidden="true">AI</div>
@@ -185,7 +190,7 @@
         <li><a href="#page-branch"        class="nav-item"         data-section="branch">      <span class="nav-icon">🌿</span><span class="nav-label">Branch Model</span></a></li>
         <li><a href="#page-exchange"      class="nav-item"         data-section="exchange">    <span class="nav-icon">💱</span><span class="nav-label">Exchange</span></a></li>
         <li><a href="#page-resource"      class="nav-item"         data-section="resource">    <span class="nav-icon">👥</span><span class="nav-label">Resources</span></a></li>
-        <li><a href="#page-admin"         class="nav-item"         data-section="admin">       <span class="nav-icon">🛡️</span><span class="nav-label">Admin</span></a></li>
+        <li class="admin-nav-item is-admin-hidden"><a href="#page-admin" class="nav-item" data-section="admin">       <span class="nav-icon">🛡️</span><span class="nav-label">Admin</span></a></li>
         <li><a href="#page-integrations"  class="nav-item"         data-section="integrations"><span class="nav-icon">🔌</span><span class="nav-label">Integrations</span></a></li>
         <li><a href="#page-simulation"    class="nav-item"         data-section="simulation">  <span class="nav-icon">🔬</span><span class="nav-label">Simulation</span></a></li>
       </ul>
@@ -236,26 +241,17 @@
           </div>
         </div>
         <div class="neural-shell card glass">
-          <div class="neural-map" id="neural-map" aria-label="대시보드 메뉴 지식 구조도">
-            <svg class="neural-links" viewBox="0 0 900 360" aria-hidden="true">
-              <line x1="450" y1="180" x2="175" y2="76"></line>
-              <line x1="450" y1="180" x2="450" y2="54"></line>
-              <line x1="450" y1="180" x2="725" y2="76"></line>
-              <line x1="450" y1="180" x2="165" y2="246"></line>
-              <line x1="450" y1="180" x2="450" y2="306"></line>
-              <line x1="450" y1="180" x2="738" y2="246"></line>
-              <line x1="175" y1="76" x2="165" y2="246"></line>
-              <line x1="725" y1="76" x2="738" y2="246"></line>
-              <line x1="450" y1="54" x2="725" y2="76"></line>
-              <line x1="450" y1="306" x2="738" y2="246"></line>
-            </svg>
-            <button class="neural-node neural-node--core" data-page-target="briefing">Command<br>Center</button>
-            <button class="neural-node neural-node--projects" data-page-target="projects">Projects</button>
-            <button class="neural-node neural-node--kpi" data-page-target="kpi">KPI</button>
-            <button class="neural-node neural-node--risk" data-page-target="risk">Risk</button>
-            <button class="neural-node neural-node--team" data-page-target="teamchat">Team</button>
-            <button class="neural-node neural-node--meeting" data-page-target="meeting">Meeting AI</button>
-            <button class="neural-node neural-node--expense" data-page-target="expenses">Expense</button>
+          <div class="neural-map neural-map--obsidian" id="neural-map" aria-label="대시보드 메뉴 지식 구조도">
+            <canvas id="knowledge-map-canvas" class="knowledge-map-canvas" width="1100" height="520" aria-hidden="true"></canvas>
+            <div class="knowledge-map-actions" aria-label="Command Knowledge Map quick links">
+              <button class="knowledge-chip knowledge-chip--core" data-page-target="briefing">Command Center</button>
+              <button class="knowledge-chip knowledge-chip--projects" data-page-target="projects">Projects</button>
+              <button class="knowledge-chip knowledge-chip--risk" data-page-target="risk">Risk</button>
+              <button class="knowledge-chip knowledge-chip--team" data-page-target="teamchat">Team Chat</button>
+              <button class="knowledge-chip knowledge-chip--meeting" data-page-target="meeting">Meeting AI</button>
+              <button class="knowledge-chip knowledge-chip--expense" data-page-target="expenses">Expenses</button>
+              <button class="knowledge-chip knowledge-chip--kpi" data-page-target="kpi">KPI</button>
+            </div>
           </div>
           <div class="neural-insight" id="neural-insight">
             <div class="neural-insight-title">오늘의 운영 연결</div>
@@ -730,12 +726,6 @@
           </div>
         </div>
         <div class="admin-shell">
-          <div id="admin-login-card" class="admin-login-card card glass">
-            <div class="utility-panel-title">관리자 인증</div>
-            <input id="admin-password-input" class="form-input" type="password" placeholder="관리자 비밀번호" />
-            <button id="admin-login-btn" class="btn btn--primary">관리자 로그인</button>
-            <div class="admin-login-hint">데모 기본값: ADMIN-2026</div>
-          </div>
           <div id="admin-console-card" class="admin-console-card card glass hidden">
             <div class="admin-console-top">
               <div>
@@ -929,7 +919,7 @@
 <script src="js/presentation.js"></script>
 <script src="js/lawyer.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="js/integrations.js?v=20260526-final"></script>
+<script src="js/integrations.js?v=20260526-admin-theme"></script>
 
 </body>
 </html>

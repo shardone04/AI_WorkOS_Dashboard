@@ -7238,3 +7238,272 @@ html[data-theme="light"] * {
     display: none;
   }
 }
+
+/* =============================================
+   Final Comfort Theme: Pastel + Contrast Fix
+============================================== */
+:root {
+  --bg-main: #1f2433;
+  --bg-panel: #252c3d;
+  --bg-card: rgba(42, 50, 68, 0.74);
+  --bg-card-hover: rgba(53, 63, 84, 0.86);
+  --bg-input: rgba(37, 44, 61, 0.82);
+  --bg-sidebar: rgba(31, 37, 52, 0.95);
+  --bg-header: rgba(31, 36, 51, 0.92);
+  --text-main: #f5f2ea;
+  --text-sub: #c7d0df;
+  --text-muted: #94a2b8;
+  --accent-cyan: #9adbe8;
+  --accent-purple: #bba7e8;
+  --accent-blue: #9eb7ee;
+  --success: #a8ddb5;
+  --warning: #f5d98b;
+  --danger: #f1a3a8;
+  --orange: #f4bd8a;
+  --info: #a7d9f3;
+  --border-soft: rgba(205, 217, 232, 0.16);
+  --border-accent: rgba(154, 219, 232, 0.32);
+  --shadow-card: 0 14px 38px rgba(8, 13, 24, 0.24);
+  --shadow-soft: 0 22px 56px rgba(8, 13, 24, 0.28);
+  --glow-cyan: 0 0 16px rgba(154, 219, 232, 0.14);
+  --glow-purple: 0 0 16px rgba(187, 167, 232, 0.14);
+  --glow-danger: 0 0 14px rgba(241, 163, 168, 0.18);
+}
+
+html[data-theme="light"] {
+  --bg-main: #f4f7fb !important;
+  --bg-panel: #ffffff !important;
+  --bg-card: rgba(255, 255, 255, 0.92) !important;
+  --bg-card-hover: #ffffff !important;
+  --bg-input: #ffffff !important;
+  --bg-sidebar: rgba(250, 253, 255, 0.98) !important;
+  --bg-header: rgba(250, 253, 255, 0.96) !important;
+  --text-main: #243045 !important;
+  --text-sub: #4e5f78 !important;
+  --text-muted: #708198 !important;
+  --accent-cyan: #4ea8b8 !important;
+  --accent-purple: #8872bd !important;
+  --accent-blue: #5f7fc8 !important;
+  --success: #2f8b55 !important;
+  --warning: #a96d11 !important;
+  --danger: #b84750 !important;
+  --orange: #b66527 !important;
+  --info: #3b86a9 !important;
+  --border-soft: rgba(52, 72, 96, 0.16) !important;
+  --border-accent: rgba(78, 168, 184, 0.36) !important;
+  --shadow-card: 0 14px 38px rgba(62, 82, 112, 0.12) !important;
+  --shadow-soft: 0 24px 64px rgba(62, 82, 112, 0.14) !important;
+}
+
+body {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(154, 219, 232, 0.09), transparent 28%),
+    radial-gradient(circle at 82% 12%, rgba(187, 167, 232, 0.08), transparent 30%),
+    var(--bg-main) !important;
+  color: var(--text-main) !important;
+}
+
+html[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 20% 8%, rgba(158, 183, 238, 0.14), transparent 28%),
+    radial-gradient(circle at 82% 10%, rgba(154, 219, 232, 0.12), transparent 32%),
+    #f4f7fb !important;
+}
+
+.hud-background {
+  opacity: 0.34 !important;
+}
+
+html[data-theme="light"] .hud-background {
+  opacity: 0.12 !important;
+}
+
+:is(.header, .sidebar, .copilot-panel) {
+  background: var(--bg-sidebar) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-soft) !important;
+}
+
+.header {
+  background: var(--bg-header) !important;
+}
+
+:is(.card, .glass, .modal-box, .cmd-box, .summary-card, .project-card, .kpi-card,
+.swot-cell, .branch-graph, .mini-calendar, .event-item, .mail-item, .feed-item,
+.hotissue-item, .resource-item, .decision-card, .utility-panel, .teamchat-main,
+.teamchat-side, .meeting-ai-uploader, .meeting-ai-summary, .settlement-panel,
+.expense-shell, .gmail-automation, .integration-card, .admin-console-card, .overview-exchange-card) {
+  background: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+html[data-theme="light"] :is(.card, .glass, .modal-box, .cmd-box, .summary-card, .project-card, .kpi-card,
+.swot-cell, .branch-graph, .mini-calendar, .event-item, .mail-item, .feed-item,
+.hotissue-item, .resource-item, .decision-card, .utility-panel, .teamchat-main,
+.teamchat-side, .meeting-ai-uploader, .meeting-ai-summary, .settlement-panel,
+.expense-shell, .gmail-automation, .integration-card, .admin-console-card, .overview-exchange-card) {
+  background: #ffffff !important;
+  color: #243045 !important;
+}
+
+:is(.section-title, .modal-title, .project-name, .task-title, .kpi-name, .mail-subject,
+.feed-title, .hotissue-title, .event-title, .member-name, .integration-card-title,
+.settlement-line strong, .expense-kpi-value, .user-name, .logo-text) {
+  color: var(--text-main) !important;
+}
+
+:is(.muted-text, .section-subtitle, .modal-body, .project-team, .mail-summary, .mail-from,
+.feed-date, .hotissue-prediction, .resource-stats, .admin-console-sub, .admin-login-hint,
+.meeting-summary-output, .mail-preview, .neural-insight-body, .user-role, .header-datetime) {
+  color: var(--text-sub) !important;
+}
+
+html[data-theme="light"] :is(input, select, textarea, .form-input, .form-select, .search-input, .chat-input, .task-search-input) {
+  background: #ffffff !important;
+  color: #243045 !important;
+  border-color: rgba(52, 72, 96, 0.22) !important;
+}
+
+html[data-theme="light"] :is(input, textarea)::placeholder {
+  color: #8290a3 !important;
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue)) !important;
+  color: #172033 !important;
+}
+
+html[data-theme="light"] .btn--primary {
+  color: #ffffff !important;
+}
+
+.btn--ghost,
+.icon-btn,
+.period-tab,
+.filter-btn {
+  color: var(--text-sub) !important;
+  border-color: var(--border-soft) !important;
+}
+
+.btn--ghost:hover,
+.icon-btn:hover,
+.period-tab.active,
+.period-tab:hover,
+.filter-btn.active,
+.filter-btn:hover,
+.nav-item.active,
+.nav-item:hover {
+  color: var(--accent-cyan) !important;
+  border-color: var(--border-accent) !important;
+  background: rgba(154, 219, 232, 0.10) !important;
+}
+
+html[data-theme="light"] .badge--muted {
+  background: rgba(80, 98, 124, 0.08) !important;
+  color: #5d6f86 !important;
+  border-color: rgba(80, 98, 124, 0.18) !important;
+}
+
+.admin-nav-item.is-admin-hidden {
+  display: none !important;
+}
+
+.admin-entry-active {
+  color: var(--success) !important;
+  border-color: rgba(168, 221, 181, 0.36) !important;
+  background: rgba(168, 221, 181, 0.10) !important;
+}
+
+.neural-shell {
+  grid-template-columns: minmax(0, 1fr) 240px !important;
+}
+
+.neural-map--obsidian {
+  min-height: 520px !important;
+  border-radius: 8px !important;
+  background: #272b39 !important;
+  overflow: hidden !important;
+}
+
+html[data-theme="light"] .neural-map--obsidian {
+  background: #eaf0f8 !important;
+}
+
+.knowledge-map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.knowledge-map-actions {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.knowledge-chip {
+  position: absolute;
+  pointer-events: auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 242, 234, 0.24);
+  background: rgba(31, 36, 51, 0.68);
+  color: rgba(245, 242, 234, 0.88);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="light"] .knowledge-chip {
+  background: rgba(255, 255, 255, 0.72);
+  color: #34415a;
+  border-color: rgba(52, 72, 96, 0.18);
+}
+
+.knowledge-chip:hover {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+.knowledge-chip--core { left: 47%; top: 52%; transform: translate(-50%, -50%); }
+.knowledge-chip--projects { left: 22%; top: 38%; }
+.knowledge-chip--risk { right: 24%; top: 34%; }
+.knowledge-chip--team { right: 12%; top: 57%; }
+.knowledge-chip--meeting { left: 44%; bottom: 14%; }
+.knowledge-chip--expense { left: 24%; bottom: 20%; }
+.knowledge-chip--kpi { right: 18%; top: 18%; }
+
+@media (max-width: 1180px) {
+  .neural-shell {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-entry-label {
+    display: none;
+  }
+
+  .neural-map--obsidian {
+    min-height: 420px !important;
+  }
+
+  .knowledge-chip {
+    position: static;
+    display: inline-flex;
+    margin: 6px;
+    transform: none !important;
+  }
+
+  .knowledge-map-actions {
+    inset: auto 10px 10px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+}
