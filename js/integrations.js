@@ -56,6 +56,72 @@ const dashboardBoards = [
   { id: 'risk', label: 'Risk & Issues', owner: 'devops' }
 ];
 
+const knowledgeMapMenus = {
+  briefing: {
+    label: 'Overview',
+    page: 'briefing',
+    tasks: [
+      'AI 브리핑과 핵심 지표를 먼저 확인',
+      '포스트잇과 환율 알림으로 오늘 운영 흐름 점검',
+      '팀 공지와 진행 상태를 한 화면에서 정렬'
+    ]
+  },
+  projects: {
+    label: 'Projects',
+    page: 'projects',
+    tasks: [
+      '프로젝트 진행률과 마감 D-day 확인',
+      '의사결정 로그로 병목 이슈 추적',
+      '담당자별 다음 액션을 빠르게 배정'
+    ]
+  },
+  risk: {
+    label: 'Risk',
+    page: 'risk',
+    tasks: [
+      '핫이슈와 리스크 매트릭스 우선순위 확인',
+      '시나리오 시뮬레이션으로 지연 영향 예측',
+      '긴급 알림 전송 전 위험 근거 점검'
+    ]
+  },
+  comms: {
+    label: 'Comms',
+    page: 'comms',
+    tasks: [
+      '업무 메일과 팀 채팅을 함께 확인',
+      'Gmail 자동화 초안과 발송 상태 점검',
+      '조직 뉴스피드에서 공유 필요 이슈 선별'
+    ]
+  },
+  meeting: {
+    label: 'Meeting AI',
+    page: 'meeting',
+    tasks: [
+      'mp3 또는 m4a 회의 음성 업로드',
+      '결정사항 중심으로 회의 요약 MD 생성',
+      '회의 전 준비 질문과 관련 KPI 확인'
+    ]
+  },
+  expenses: {
+    label: 'Expenses',
+    page: 'expenses',
+    tasks: [
+      '공동 경비 카테고리와 담당자별 지출 확인',
+      'Google Sheet 경비 데이터 동기화',
+      '정산 분석에서 일일/월간 결산 흐름 점검'
+    ]
+  },
+  kpi: {
+    label: 'KPI',
+    page: 'kpi',
+    tasks: [
+      '목표 대비 실적과 경고 지표 확인',
+      '일일·주간·월간 결산 추세 점검',
+      '정산 지표와 운영 KPI를 연결해 해석'
+    ]
+  }
+};
+
 const sampleExpenses = [
   { date: '2026-05-20', category: '식비', item: '팀 점심 회의', amount: 128000, owner: '사지윤', method: '법인카드' },
   { date: '2026-05-20', category: '소모품', item: '화이트보드 마커', amount: 26000, owner: 'HR Partner', method: '공동경비' },
@@ -259,6 +325,7 @@ function initNeuralMap() {
     });
   });
   renderKnowledgeMapCanvas();
+  initKnowledgeMapTooltip();
   window.addEventListener('resize', () => window.requestAnimationFrame(renderKnowledgeMapCanvas));
   new MutationObserver(() => window.requestAnimationFrame(renderKnowledgeMapCanvas))
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -270,6 +337,92 @@ function seededRandom(seed) {
     value = value * 16807 % 2147483647;
     return (value - 1) / 2147483646;
   };
+}
+
+function getKnowledgeTask(menuKey, index = 0) {
+  const menu = knowledgeMapMenus[menuKey] || knowledgeMapMenus.briefing;
+  return menu.tasks[index % menu.tasks.length];
+}
+
+function getKnowledgeTooltipMarkup(node) {
+  const menu = knowledgeMapMenus[node.menuKey] || knowledgeMapMenus.briefing;
+  return `
+    <strong>${escHtml(menu.label)}</strong>
+    <span>${escHtml(node.task || getKnowledgeTask(node.menuKey, node.taskIndex || 0))}</span>
+  `;
+}
+
+function findKnowledgeMapNode(canvas, x, y) {
+  const nodes = canvas._knowledgeMapNodes || [];
+  let nearest = null;
+  let nearestDistance = Infinity;
+
+  nodes.forEach(node => {
+    const dx = node.x - x;
+    const dy = node.y - y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const hitRadius = node.hub ? 16 : Math.max(8, node.radius + 7);
+    if (distance <= hitRadius && distance < nearestDistance) {
+      nearest = node;
+      nearestDistance = distance;
+    }
+  });
+
+  return nearest;
+}
+
+function initKnowledgeMapTooltip() {
+  const canvas = document.getElementById('knowledge-map-canvas');
+  const wrap = document.getElementById('neural-map');
+  const tooltip = document.getElementById('knowledge-map-tooltip');
+  if (!canvas || !wrap || !tooltip || canvas.dataset.tooltipReady === 'true') return;
+
+  const hideTooltip = () => {
+    tooltip.hidden = true;
+    delete tooltip.dataset.menu;
+    tooltip.classList.remove('is-below');
+    canvas.classList.remove('is-hovering-node');
+  };
+
+  const moveTooltip = event => {
+    const canvasRect = canvas.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const x = event.clientX - canvasRect.left;
+    const y = event.clientY - canvasRect.top;
+    const node = findKnowledgeMapNode(canvas, x, y);
+
+    if (!node) {
+      hideTooltip();
+      return;
+    }
+
+    tooltip.innerHTML = getKnowledgeTooltipMarkup(node);
+    tooltip.dataset.menu = node.menuKey;
+    tooltip.hidden = false;
+    canvas.classList.add('is-hovering-node');
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const tooltipHalf = tooltipRect.width / 2;
+    const left = Math.min(
+      wrapRect.width - tooltipHalf - 10,
+      Math.max(tooltipHalf + 10, node.x)
+    );
+    const placeBelow = node.y < tooltipRect.height + 24;
+
+    tooltip.classList.toggle('is-below', placeBelow);
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${placeBelow ? node.y + 16 : node.y - 10}px`;
+  };
+
+  canvas.addEventListener('mousemove', moveTooltip);
+  canvas.addEventListener('mouseleave', hideTooltip);
+  canvas.addEventListener('click', event => {
+    const rect = canvas.getBoundingClientRect();
+    const node = findKnowledgeMapNode(canvas, event.clientX - rect.left, event.clientY - rect.top);
+    const page = knowledgeMapMenus[node?.menuKey]?.page;
+    if (page && typeof showDashboardPage === 'function') showDashboardPage(page);
+  });
+  canvas.dataset.tooltipReady = 'true';
 }
 
 function renderKnowledgeMapCanvas() {
@@ -295,28 +448,48 @@ function renderKnowledgeMapCanvas() {
   const rand = seededRandom(2050);
   const cx = width * 0.52;
   const cy = height * 0.56;
+  const menuKeys = ['projects', 'risk', 'comms', 'meeting', 'expenses', 'kpi', 'briefing'];
 
   const nodes = [];
-  const addNode = (x, y, radius, group = 'core', hub = false) => {
-    nodes.push({ x, y, radius, group, hub });
+  const addNode = (x, y, radius, group = 'core', hub = false, menuKey = group, taskIndex = nodes.length) => {
+    const resolvedMenu = knowledgeMapMenus[menuKey] ? menuKey : 'briefing';
+    nodes.push({
+      x,
+      y,
+      radius,
+      group,
+      hub,
+      menuKey: resolvedMenu,
+      taskIndex,
+      task: getKnowledgeTask(resolvedMenu, taskIndex)
+    });
     return nodes[nodes.length - 1];
   };
 
-  const core = addNode(cx, cy, 8, 'core', true);
+  const core = addNode(cx, cy, 8, 'core', true, 'briefing');
   const hubs = [
-    addNode(width * 0.32, height * 0.43, 5.5, 'projects', true),
-    addNode(width * 0.63, height * 0.44, 5.5, 'risk', true),
-    addNode(width * 0.50, height * 0.78, 5, 'meeting', true),
-    addNode(width * 0.78, height * 0.60, 5, 'team', true),
-    addNode(width * 0.36, height * 0.74, 5, 'expense', true),
-    addNode(width * 0.69, height * 0.23, 5.5, 'kpi', true)
+    addNode(width * 0.32, height * 0.43, 5.5, 'projects', true, 'projects'),
+    addNode(width * 0.63, height * 0.44, 5.5, 'risk', true, 'risk'),
+    addNode(width * 0.50, height * 0.78, 5, 'meeting', true, 'meeting'),
+    addNode(width * 0.78, height * 0.60, 5, 'team', true, 'comms'),
+    addNode(width * 0.36, height * 0.74, 5, 'expense', true, 'expenses'),
+    addNode(width * 0.69, height * 0.23, 5.5, 'kpi', true, 'kpi')
   ];
 
   for (let i = 0; i < 220; i += 1) {
     const angle = rand() * Math.PI * 2;
     const dist = Math.pow(rand(), 0.58) * Math.min(width, height) * 0.44;
     const noise = (rand() - 0.5) * 46;
-    addNode(cx + Math.cos(angle) * dist + noise, cy + Math.sin(angle) * dist + noise, rand() > 0.9 ? 2.4 : 1.65, rand() > 0.78 ? 'purple' : 'white');
+    const menuKey = menuKeys[Math.floor(rand() * menuKeys.length)];
+    addNode(
+      cx + Math.cos(angle) * dist + noise,
+      cy + Math.sin(angle) * dist + noise,
+      rand() > 0.9 ? 2.4 : 1.65,
+      rand() > 0.78 ? 'purple' : 'white',
+      false,
+      menuKey,
+      i
+    );
   }
 
   hubs.forEach((hub, hubIndex) => {
@@ -324,7 +497,15 @@ function renderKnowledgeMapCanvas() {
     for (let i = 0; i < count; i += 1) {
       const angle = rand() * Math.PI * 2;
       const dist = 18 + rand() * 82;
-      addNode(hub.x + Math.cos(angle) * dist, hub.y + Math.sin(angle) * dist, rand() > 0.82 ? 2.5 : 1.7, hubIndex % 2 ? 'purple' : 'white');
+      addNode(
+        hub.x + Math.cos(angle) * dist,
+        hub.y + Math.sin(angle) * dist,
+        rand() > 0.82 ? 2.5 : 1.7,
+        hubIndex % 2 ? 'purple' : 'white',
+        false,
+        hub.menuKey,
+        i
+      );
     }
   });
 
@@ -332,8 +513,12 @@ function renderKnowledgeMapCanvas() {
     const side = i % 4;
     const x = side === 0 ? width * 0.08 + rand() * 80 : side === 1 ? width * 0.9 - rand() * 80 : rand() * width;
     const y = side === 2 ? height * 0.08 + rand() * 80 : side === 3 ? height * 0.9 - rand() * 80 : rand() * height;
-    addNode(x, y, 1.55, rand() > 0.86 ? 'purple' : 'white');
+    const menuKey = menuKeys[Math.floor(rand() * menuKeys.length)];
+    addNode(x, y, 1.55, rand() > 0.86 ? 'purple' : 'white', false, menuKey, i);
   }
+
+  canvas._knowledgeMapNodes = nodes;
+  canvas.dataset.nodeCount = String(nodes.length);
 
   const lineColor = isLight ? 'rgba(98, 132, 198, 0.32)' : 'rgba(151, 176, 230, 0.34)';
   const hubLineColor = isLight ? 'rgba(113, 93, 171, 0.36)' : 'rgba(172, 152, 226, 0.35)';

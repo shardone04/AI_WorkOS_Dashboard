@@ -96,11 +96,11 @@
       <button id="sidebar-toggle" class="sidebar-toggle" aria-label="사이드바 토글">
         <span></span><span></span><span></span>
       </button>
-      <div class="logo">
+      <button id="brand-home" class="logo" type="button" aria-label="Overview로 이동">
         <span class="logo-orb" aria-hidden="true"></span>
         <span class="logo-text">WorkOS <strong>AI</strong></span>
         <span class="logo-sub">Command Center</span>
-      </div>
+      </button>
     </div>
 
     <!-- 중앙: 전역 검색 -->
@@ -233,6 +233,7 @@
         <div class="neural-shell card glass">
           <div class="neural-map neural-map--obsidian" id="neural-map" aria-label="대시보드 메뉴 지식 구조도">
             <canvas id="knowledge-map-canvas" class="knowledge-map-canvas" width="1100" height="520" aria-hidden="true"></canvas>
+            <div id="knowledge-map-tooltip" class="knowledge-map-tooltip" role="tooltip" hidden></div>
             <div class="knowledge-map-actions" aria-label="Command Knowledge Map quick links">
               <button class="knowledge-chip knowledge-chip--core" data-page-target="briefing">Command Center</button>
               <button class="knowledge-chip knowledge-chip--projects" data-page-target="projects">Projects</button>
@@ -347,15 +348,6 @@
               <div><strong>10:30</strong><span>QA 집중 블록 · 알림 최소화</span></div>
               <div><strong>14:00</strong><span>회의 전 요약 템플릿 자동 준비</span></div>
               <div><strong>17:40</strong><span>일일 결산 메일 초안 생성</span></div>
-            </div>
-          </div>
-          <div class="utility-panel card glass">
-            <div class="utility-panel-title">Workspace Checklist</div>
-            <div class="workspace-checks">
-              <label><input type="checkbox" checked /> Slack 브릿지 확인</label>
-              <label><input type="checkbox" checked /> Google Sheet 경비 동기화</label>
-              <label><input type="checkbox" /> Railway 환경변수 최종 점검</label>
-              <label><input type="checkbox" /> 제출 URL 텍스트 파일 갱신</label>
             </div>
           </div>
         </div>
@@ -955,7 +947,7 @@
 <script src="js/presentation.js"></script>
 <script src="js/lawyer.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="js/integrations.js?v=20260527-menu-admin-guide"></script>
+<script src="js/integrations.js?v=20260527-knowledge-hover"></script>
 
 </body>
 </html>

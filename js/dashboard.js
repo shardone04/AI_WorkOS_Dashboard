@@ -1148,6 +1148,10 @@ function scrollToSection(sectionId) {
 }
 
 function initNavScroll() {
+  document.getElementById('brand-home')?.addEventListener('click', () => {
+    showDashboardPage('briefing');
+  });
+
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', e => {
       e.preventDefault();
