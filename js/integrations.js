@@ -548,7 +548,7 @@ async function transcribeMeetingAudio() {
     const base64 = await fileToBase64(file);
     const result = await apiPost('/api/transcribe', {
       fileName: file.name,
-      mimeType: file.type || 'audio/mpeg',
+      mimeType: getAudioMimeType(file),
       audioBase64: base64
     });
 
@@ -572,6 +572,16 @@ async function transcribeMeetingAudio() {
     }
     showToast('데모 전사 적용', 'OPENAI_API_KEY를 Railway에 넣으면 실제 전사가 활성화됩니다.', 'info');
   }
+}
+
+function getAudioMimeType(file) {
+  const name = (file?.name || '').toLowerCase();
+  if (file?.type) return file.type;
+  if (name.endsWith('.m4a')) return 'audio/mp4';
+  if (name.endsWith('.mp4')) return 'audio/mp4';
+  if (name.endsWith('.wav')) return 'audio/wav';
+  if (name.endsWith('.webm')) return 'audio/webm';
+  return 'audio/mpeg';
 }
 
 function fileToBase64(file) {

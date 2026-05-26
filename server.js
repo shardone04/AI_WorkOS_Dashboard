@@ -122,7 +122,7 @@ async function handleApi(req, res, url) {
     try {
       const buffer = Buffer.from(body.audioBase64, 'base64');
       const form = new FormData();
-      const blob = new Blob([buffer], { type: body.mimeType || 'audio/mpeg' });
+      const blob = new Blob([buffer], { type: getAudioMimeType(body.fileName, body.mimeType) });
       form.append('file', blob, body.fileName || 'meeting-audio.mp3');
       form.append('model', process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe');
       form.append('response_format', 'json');
@@ -255,4 +255,14 @@ function parseCsv(csv) {
 
 function fallbackTranscript(fileName = 'meeting-audio') {
   return `${fileName} 회의 녹음 전사 데모. 결제 QA 병목은 오늘 중 담당자를 확정한다. 공동 경비는 Google Sheet 기준으로 매일 업데이트한다. Slack 채널에는 주요 결정사항만 공유한다. 다음 회의 전까지 관리자 페이지에서 팀원별 공개 범위를 설정한다.`;
+}
+
+function getAudioMimeType(fileName = '', mimeType = '') {
+  if (mimeType && mimeType !== 'application/octet-stream') return mimeType;
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith('.m4a')) return 'audio/mp4';
+  if (lower.endsWith('.mp4')) return 'audio/mp4';
+  if (lower.endsWith('.wav')) return 'audio/wav';
+  if (lower.endsWith('.webm')) return 'audio/webm';
+  return 'audio/mpeg';
 }
