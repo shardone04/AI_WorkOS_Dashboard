@@ -245,7 +245,7 @@ function getBotResponse(message) {
     return getDangerProjectsResponse();
   }
 
-  /* ── 패턴 8: 건강 점수 / 조직 상태 ── */
+  /* ── 패턴 8: 운영 상태 ── */
   if (includes(t, ['건강', '점수', '조직', '상태', '전체'])) {
     return getHealthScoreResponse();
   }
@@ -276,7 +276,7 @@ function getBotResponse(message) {
   /* ── 패턴 13: 도움말 / 기능 ── */
   if (includes(t, ['도움', '기능', '뭐', '어떤', '할 수', '사용법'])) {
     return {
-      response: '저는 다음과 같은 질문에 답변할 수 있습니다:\n\n1. **"오늘 가장 급한 업무"** — 우선순위 업무 분석\n2. **"KPI 경고 원인"** — 성과 지표 분석\n3. **"고객 메일 요약"** — 메일 현황 및 SLA\n4. **"위험 프로젝트"** — 프로젝트 상태 요약\n5. **"회의 체크리스트"** — AI 회의 준비 지원\n6. **"텔레그램 알림"** — 긴급 알림 전송\n7. **"병목 업무"** — 지연 원인 분석\n8. **"조직 건강 점수"** — 전체 상태 분석',
+      response: '저는 다음과 같은 질문에 답변할 수 있습니다:\n\n1. **"오늘 가장 급한 업무"** — 우선순위 업무 분석\n2. **"KPI 경고 원인"** — 성과 지표 분석\n3. **"고객 메일 요약"** — 메일 현황 및 SLA\n4. **"위험 프로젝트"** — 프로젝트 상태 요약\n5. **"회의 체크리스트"** — AI 회의 준비 지원\n6. **"텔레그램 알림"** — 긴급 알림 전송\n7. **"병목 업무"** — 지연 원인 분석\n8. **"전체 운영 상태"** — 경고 신호 요약',
       evidence: null
     };
   }
@@ -525,33 +525,29 @@ function getDangerProjectsResponse() {
   return { response, evidence };
 }
 
-/** 패턴 8: 건강 점수 */
+/** 패턴 8: 운영 상태 */
 function getHealthScoreResponse() {
-  const { score, status, factors } = calculateHealthScore();
+  const dangerProjects = projects.filter(p => p.status === 'danger').length;
+  const warningProjects = projects.filter(p => p.status === 'warning').length;
+  const urgentMails = mails.filter(m => m.unread && m.priority === 'high' && !AppState.repliedMails?.has(m.id)).length;
+  const overloaded = resources.filter(r => r.load >= 90).length;
+  const kpiAlerts = countKpiAlerts();
 
-  const statusEmoji = status === 'Critical' ? '🔴' : status === 'Warning' ? '🟡' : '🟢';
-  let response = `${statusEmoji} **조직 건강 점수: ${score} / 100** (${status})\n\n`;
-  response += '**지표별 현황**:\n';
-
-  Object.entries(factors).forEach(([name, f]) => {
-    const icon = f.level === 'good' ? '✅' : f.level === 'warn' ? '⚠️' : '❌';
-    response += `${icon} ${name}: ${typeof f.value === 'number' ? f.value + '건' : f.value}\n`;
-  });
-
-  if (score < 72) {
-    response += '\n**AI 권장 조치**:\n';
-    response += '1. 위험 프로젝트 담당자 재배정 검토\n';
-    response += '2. 긴급 메일 즉시 처리\n';
-    response += '3. KPI 하락 원인 팀 보고\n';
-  } else {
-    response += '\n현재 상태는 비교적 안정적입니다. 주요 KPI와 마감일을 계속 모니터링하세요.';
-  }
+  let response = '📡 **전체 운영 상태 요약**\n\n';
+  response += `• 위험 프로젝트: ${dangerProjects}건 / 주의 프로젝트: ${warningProjects}건\n`;
+  response += `• KPI 경고: ${kpiAlerts}건\n`;
+  response += `• 긴급 미처리 메일: ${urgentMails}건\n`;
+  response += `• 리소스 과부하 팀: ${overloaded}개\n`;
+  response += '\n**AI 권장 조치**:\n';
+  response += '1. 위험 프로젝트와 KPI 경고를 Risk 메뉴에서 먼저 확인\n';
+  response += '2. Comms 메뉴에서 긴급 메일 SLA 처리\n';
+  response += '3. Tasks 메뉴에서 담당자 과부하 재배정 검토\n';
 
   const evidence = buildEvidence({
-    '종합 점수': `${score}/100`,
-    '상태': status,
-    '위험 프로젝트': `${projects.filter(p=>p.status==='danger').length}건`,
-    'KPI 경고': `${countKpiAlerts()}건`
+    '위험 프로젝트': `${dangerProjects}건`,
+    'KPI 경고': `${kpiAlerts}건`,
+    '긴급 메일': `${urgentMails}건`,
+    '과부하 팀': `${overloaded}개`
   });
 
   return { response, evidence };

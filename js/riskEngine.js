@@ -5,13 +5,12 @@
    1.  날짜 유틸리티
    2.  Priority Score 계산
    3.  KPI Status 판단
-   4.  Organization Health Score
-   5.  Risk Signal Stream 생성
-   6.  Scenario Simulation
-   7.  AI Daily Briefing 텍스트 생성
-   8.  AI Action Recommendations 생성
-   9.  LocalStorage 유틸리티
-   10. 전역 상태 초기화
+   4.  Risk Signal Stream 생성
+   5.  Scenario Simulation
+   6.  AI Daily Briefing 텍스트 생성
+   7.  AI Action Recommendations 생성
+   8.  LocalStorage 유틸리티
+   9.  전역 상태 초기화
 ============================================== */
 
 /* =============================================
@@ -180,68 +179,7 @@ function countKpiAlerts() {
 }
 
 /* =============================================
-   4. Organization Health Score (0~100)
-============================================== */
-
-/**
- * 여러 지표를 종합해 조직 건강 점수와 상태 반환
- * @returns {{ score: number, status: string, factors: object }}
- */
-function calculateHealthScore() {
-  let score = 100;
-  const factors = {};
-
-  // ① 위험 프로젝트 수 (status === 'danger')
-  const dangerProjects = projects.filter(p => p.status === 'danger').length;
-  const warningProjects = projects.filter(p => p.status === 'warning').length;
-  const projectPenalty = dangerProjects * 8 + warningProjects * 3;
-  score -= projectPenalty;
-  factors['위험 프로젝트'] = { value: dangerProjects, penalty: projectPenalty, level: dangerProjects > 1 ? 'bad' : dangerProjects === 1 ? 'warn' : 'good' };
-
-  // ② KPI 경고 수
-  const kpiRed    = kpis.filter(k => getKpiStatus(k.current, k.target) === 'red').length;
-  const kpiYellow = kpis.filter(k => getKpiStatus(k.current, k.target) === 'yellow').length;
-  const kpiPenalty = kpiRed * 6 + kpiYellow * 2;
-  score -= kpiPenalty;
-  factors['KPI 경고'] = { value: `${kpiRed}red / ${kpiYellow}yellow`, penalty: kpiPenalty, level: kpiRed > 1 ? 'bad' : kpiRed === 1 ? 'warn' : 'good' };
-
-  // ③ 지연된 업무 수 (마감일 초과 또는 D-0 이내 미완료)
-  const sortedTasks = getSortedTasks();
-  const overdueTasks = sortedTasks.filter(t => getDaysLeft(t.dueDate) <= 0 && !t.isDone).length;
-  const urgentPending = sortedTasks.filter(t => getDaysLeft(t.dueDate) <= 2 && !t.isDone).length;
-  const taskPenalty = overdueTasks * 7 + urgentPending * 2;
-  score -= taskPenalty;
-  factors['지연 업무'] = { value: overdueTasks, penalty: taskPenalty, level: overdueTasks > 2 ? 'bad' : overdueTasks > 0 ? 'warn' : 'good' };
-
-  // ④ 긴급 메일 미처리 수
-  const urgentUnread = mails.filter(m => m.unread && !AppState.repliedMails?.has(m.id) && m.priority === 'high').length;
-  const mailPenalty = urgentUnread * 4;
-  score -= mailPenalty;
-  factors['긴급 메일'] = { value: urgentUnread, penalty: mailPenalty, level: urgentUnread > 1 ? 'bad' : urgentUnread === 1 ? 'warn' : 'good' };
-
-  // ⑤ 과부하 담당자 수 (80% 이상)
-  const overloaded = resources.filter(r => r.load >= 80).length;
-  const dangerLoad  = resources.filter(r => r.load >= 95).length;
-  const loadPenalty = overloaded * 2 + dangerLoad * 4;
-  score -= loadPenalty;
-  factors['과부하 팀'] = { value: overloaded, penalty: loadPenalty, level: dangerLoad > 0 ? 'bad' : overloaded > 2 ? 'warn' : 'good' };
-
-  // ⑥ 완료된 업무로 점수 소량 회복
-  const completedBonus = Math.min(10, sortedTasks.filter(t => t.isDone).length * 2);
-  score += completedBonus;
-  factors['완료 업무'] = { value: sortedTasks.filter(t => t.isDone).length, penalty: -completedBonus, level: 'good' };
-
-  score = Math.max(0, Math.min(100, Math.round(score)));
-
-  let status = 'Stable';
-  if (score < 50) status = 'Critical';
-  else if (score < 72) status = 'Warning';
-
-  return { score, status, factors };
-}
-
-/* =============================================
-   5. Risk Signal Stream 생성
+   4. Risk Signal Stream 생성
 ============================================== */
 
 /**
@@ -355,11 +293,6 @@ function simulateDelay(taskId, delayDays) {
   // Telegram 알림 권장 여부
   const recommendTelegram = newPriority >= 85 || days >= 3;
 
-  // 조직 건강 점수 예측 하락
-  const { score: currentHealth } = calculateHealthScore();
-  const healthDrop = Math.round(days * 1.8 + task.impact * 0.5);
-  const newHealth = Math.max(0, currentHealth - healthDrop);
-
   return {
     taskTitle: task.title,
     taskOwner: task.owner,
@@ -373,9 +306,6 @@ function simulateDelay(taskId, delayDays) {
     customerImpact,
     chainTasks,
     recommendTelegram,
-    currentHealth,
-    newHealth,
-    healthDrop,
     relatedProjectName: relatedProject ? relatedProject.name : '없음'
   };
 }
@@ -386,10 +316,30 @@ function simulateDelay(taskId, delayDays) {
 
 /**
  * 현재 데이터를 분석해 브리핑 텍스트 및 추천 액션 생성
- * @returns {{ status: string, text: string, actions: string[], healthScore: number }}
+ * @returns {{ status: string, statusLabel: string, signalCount: number }}
+ */
+function calculateOperationalStatus() {
+  const dangerProjects = projects.filter(p => p.status === 'danger').length;
+  const warningProjects = projects.filter(p => p.status === 'warning').length;
+  const kpiAlerts = countKpiAlerts();
+  const urgentMails = mails.filter(m => m.unread && !AppState.repliedMails?.has(m.id) && m.priority === 'high').length;
+  const overloadedTeams = resources.filter(r => r.load >= 90).length;
+  const signalCount = dangerProjects + warningProjects + kpiAlerts + urgentMails + overloadedTeams;
+
+  let status = 'Stable';
+  if (dangerProjects > 0 || urgentMails >= 2 || overloadedTeams > 0) status = 'Critical';
+  else if (warningProjects > 0 || kpiAlerts > 0 || urgentMails > 0) status = 'Warning';
+
+  const statusLabel = status === 'Critical' ? '🔴 위험' : status === 'Warning' ? '🟡 주의' : '🟢 안정';
+  return { status, statusLabel, signalCount };
+}
+
+/**
+ * 현재 데이터를 분석해 브리핑 텍스트 및 추천 액션 생성
+ * @returns {{ status: string, statusLabel: string, text: string, actions: string[], signalCount: number }}
  */
 function generateDailyBriefing() {
-  const { score, status } = calculateHealthScore();
+  const { status, statusLabel, signalCount } = calculateOperationalStatus();
   const dangerProjects  = projects.filter(p => p.status === 'danger');
   const warningProjects = projects.filter(p => p.status === 'warning');
   const kpiAlerts       = countKpiAlerts();
@@ -397,9 +347,6 @@ function generateDailyBriefing() {
   const sortedTasks     = getSortedTasks();
   const topTasks        = sortedTasks.filter(t => !t.isDone).slice(0, 3);
   const overloadedTeams = resources.filter(r => r.load >= 90);
-
-  // 상태 문구 선택
-  const statusLabel = status === 'Critical' ? '🔴 위험' : status === 'Warning' ? '🟡 주의' : '🟢 안정';
 
   // 브리핑 본문 구성
   let text = `오늘 조직 상태는 <strong>'${statusLabel}'</strong>입니다. `;
@@ -432,7 +379,7 @@ function generateDailyBriefing() {
     actions.push('모든 긴급 업무가 완료되었습니다. 다음 마일스톤을 확인하세요.');
   }
 
-  return { status, statusLabel, text, actions, healthScore: score };
+  return { status, statusLabel, text, actions, signalCount };
 }
 
 /* =============================================
@@ -551,9 +498,6 @@ const AppState = {
   // 실시간 리스크 신호
   riskSignals: [],
 
-  // 조직 건강 점수 (캐시)
-  healthData: null,
-
   // 사이드바 collapse 상태
   sidebarCollapsed: false,
   copilotCollapsed: false,
@@ -606,8 +550,6 @@ function restoreAppState() {
   // 리스크 신호 생성
   AppState.riskSignals = generateRiskSignals();
 
-  // 건강 점수 계산
-  AppState.healthData = calculateHealthScore();
 }
 
 /**
@@ -616,9 +558,9 @@ function restoreAppState() {
 function updateOrgBadge() {
   const badge   = document.getElementById('org-status-badge');
   const badgeText = document.getElementById('org-badge-text');
-  if (!badge || !AppState.healthData) return;
+  if (!badge) return;
 
-  const { status } = AppState.healthData;
+  const { status } = calculateOperationalStatus();
   badge.className = 'org-badge';
   if (status === 'Critical') {
     badge.classList.add('org-badge--critical');

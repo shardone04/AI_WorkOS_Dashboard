@@ -12,14 +12,13 @@
    8.  Countdown Timers
    9.  KPI Traffic Light
    10. SWOT Risk Matrix
-   11. Health Score 위젯
-   12. Action Recommendations
-   13. Alert 위젯
-   14. 테마 토글
-   15. Sidebar / Copilot 토글
-   16. Command Palette
-   17. 전역 검색 연결
-   18. 네비게이션 스크롤
+   11. Action Recommendations
+   12. Alert 위젯
+   13. 테마 토글
+   14. Sidebar / Copilot 토글
+   15. Command Palette
+   16. 전역 검색 연결
+   17. 네비게이션 스크롤
 ============================================== */
 
 /* =============================================
@@ -39,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCountdowns();
   renderKpis();
   renderRisks();
-  renderHealthWidget();
   renderActionRecommendations();
   renderAlerts();
   renderTelegramLogs();
@@ -69,13 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
   updateNotifCount();
   initRadarChart();
 
-  // 매 30초마다 건강점수·알림 갱신
+  // 매 30초마다 리스크 신호·알림 갱신
   setInterval(() => {
-    AppState.healthData = calculateHealthScore();
     AppState.riskSignals = generateRiskSignals();
     updateOrgBadge();
     updateNotifCount();
-    renderHealthWidget();
     renderAlerts();
   }, 30000);
 });
@@ -180,16 +176,20 @@ function renderBriefing() {
   const card = document.getElementById('briefing-card');
   if (!card) return;
 
-  const { status, statusLabel, text, actions, healthScore } = generateDailyBriefing();
+  const { status, text, actions } = generateDailyBriefing();
+  const dangerProjects = projects.filter(p => p.status === 'danger').length;
+  const urgentMails = mails.filter(m => m.unread && !AppState.repliedMails?.has(m.id) && m.priority === 'high').length;
+  const kpiAlerts = countKpiAlerts();
 
   // 테두리 색상
   const borderColor = status === 'Critical' ? 'var(--danger)'
     : status === 'Warning' ? 'var(--warning)'
     : 'var(--accent-cyan)';
 
-  const scoreColor = status === 'Critical' ? 'var(--danger)'
+  const statusColor = status === 'Critical' ? 'var(--danger)'
     : status === 'Warning' ? 'var(--warning)'
     : 'var(--success)';
+  const signalCount = dangerProjects + urgentMails + kpiAlerts;
 
   const today = new Date();
   const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일 AI 브리핑`;
@@ -208,9 +208,9 @@ function renderBriefing() {
         `).join('')}
       </div>
     </div>
-    <div class="briefing-score-box">
-      <div class="briefing-score-num" id="briefing-score-num" style="color:${scoreColor}">0</div>
-      <div class="briefing-score-label">Health Score</div>
+    <div class="briefing-score-box briefing-status-box">
+      <div class="briefing-score-num" id="briefing-signal-num" style="color:${statusColor}">0</div>
+      <div class="briefing-score-label">Risk Signals</div>
       <div class="badge ${status === 'Critical' ? 'badge--danger' : status === 'Warning' ? 'badge--warning' : 'badge--success'}" style="margin-top:6px;">
         ${status}
       </div>
@@ -218,7 +218,7 @@ function renderBriefing() {
   `;
 
   // count-up 애니메이션
-  countUp(document.getElementById('briefing-score-num'), healthScore, 1400);
+  countUp(document.getElementById('briefing-signal-num'), signalCount, 900);
 }
 
 /* =============================================
@@ -238,8 +238,9 @@ function renderSummaryCards() {
   const todayMeetings  = calendarEvents.filter(e =>
     e.type === 'meeting' && e.date === new Date().toISOString().slice(0, 10)
   ).length;
-  const { score } = calculateHealthScore();
   const aiActions = generateActionRecommendations().length;
+  const urgentMails = mails.filter(m => m.unread && m.priority === 'high' && !AppState.repliedMails?.has(m.id)).length;
+  const totalSignals = dangerProjects + kpiAlerts + urgentMails;
 
   const cardDefs = [
     {
@@ -278,10 +279,10 @@ function renderSummaryCards() {
       color: 'var(--accent-purple)', section: 'section-tasks'
     },
     {
-      icon: '💚', label: '조직 건강 점수',
-      value: score, delta: score >= 72 ? '안정' : score >= 50 ? '주의' : '위험', deltaType: score >= 72 ? 'up' : 'down',
-      color: score >= 72 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)',
-      suffix: '',  section: 'section-briefing'
+      icon: '📡', label: '운영 경고 신호',
+      value: totalSignals, delta: totalSignals > 0 ? '확인 필요' : '정상', deltaType: totalSignals > 0 ? 'down' : 'up',
+      color: totalSignals > 0 ? 'var(--danger)' : 'var(--success)',
+      suffix: '',  section: 'section-risk'
     }
   ];
 
@@ -747,43 +748,7 @@ function recordRiskDecision(riskId) {
 }
 
 /* =============================================
-   11. Health Score 위젯 (우측 패널)
-============================================== */
-
-function renderHealthWidget() {
-  const scoreEl   = document.getElementById('health-score-value');
-  const barEl     = document.getElementById('health-bar');
-  const statusEl  = document.getElementById('health-status-badge');
-  const factorsEl = document.getElementById('health-factors');
-
-  // 사이드바 미니
-  const miniScore = document.getElementById('sidebar-health-score');
-  const miniBar   = document.getElementById('sidebar-health-bar');
-
-  const { score, status, factors } = AppState.healthData || calculateHealthScore();
-
-  if (scoreEl) countUp(scoreEl, score, 1500);
-  if (barEl)   barEl.style.width = score + '%';
-  if (miniScore) countUp(miniScore, score, 1200);
-  if (miniBar)   miniBar.style.width = score + '%';
-
-  if (statusEl) {
-    statusEl.className = `badge ${status === 'Critical' ? 'badge--danger' : status === 'Warning' ? 'badge--warning' : 'badge--success'}`;
-    statusEl.textContent = status;
-  }
-
-  if (factorsEl && factors) {
-    factorsEl.innerHTML = Object.entries(factors).map(([name, f]) => `
-      <div class="health-factor-row">
-        <span>${name}</span>
-        <span class="health-factor-val ${f.level}">${typeof f.value === 'number' ? f.value + '건' : f.value}</span>
-      </div>
-    `).join('');
-  }
-}
-
-/* =============================================
-   12. Action Recommendations
+   11. Action Recommendations
 ============================================== */
 
 function renderActionRecommendations() {
@@ -1339,18 +1304,16 @@ function toggleTaskDone(taskId, isDone) {
   const target = [...tasks, ...AppState.customTasks].find(t => t.id === taskId);
   if (target) target.status = isDone ? 'done' : (target.status === 'done' ? 'in-progress' : target.status);
 
-  AppState.healthData = calculateHealthScore();
   AppState.riskSignals = generateRiskSignals();
   renderTasks();
   renderSummaryCards();
-  renderHealthWidget();
   renderActionRecommendations();
   renderAlerts();
   updateOrgBadge();
   updateNotifCount();
 
   showToast(isDone ? '업무 완료 처리' : '업무 진행 상태 복원',
-    isDone ? '완료 배지, 건강 점수, 추천 액션이 즉시 갱신되었습니다.' : '업무가 다시 진행 목록에 반영되었습니다.',
+    isDone ? '완료 배지와 추천 액션이 즉시 갱신되었습니다.' : '업무가 다시 진행 목록에 반영되었습니다.',
     isDone ? 'success' : 'info', 2600);
 }
 
@@ -1811,12 +1774,10 @@ function markMailReplied(mailId) {
   saveToLocalStorage('readMails', [...AppState.readMails]);
 
   // 답변 완료는 업무 리스크와 알림 수치에 직접 반영되도록 주요 위젯 재렌더링
-  AppState.healthData = calculateHealthScore();
   AppState.riskSignals = generateRiskSignals();
 
   renderMails();
   renderSummaryCards();
-  renderHealthWidget();
   renderActionRecommendations();
   renderAlerts();
   renderTelegramLogs();
@@ -2387,8 +2348,6 @@ function runSimulation(taskId, delayDays) {
   el.classList.remove('hidden');
 
   const kpiArrow    = result.newKpi < result.currentKpi ? '↓' : '↑';
-  const healthArrow = result.newHealth < result.currentHealth ? '↓' : '↑';
-
   // AI 완화 플랜 — projectId 또는 taskId 기반 조회
   const task = (typeof tasks !== 'undefined' ? tasks : []).find(t => t.id === taskId);
   const planKey = task && task.projectId
@@ -2414,10 +2373,6 @@ function runSimulation(taskId, delayDays) {
             <span class="ba-row-val">${result.currentPriority}점</span>
           </div>
           <div class="ba-row">
-            <span class="ba-row-label">조직 건강 점수</span>
-            <span class="ba-row-val">${result.currentHealth}</span>
-          </div>
-          <div class="ba-row">
             <span class="ba-row-label">배포 추가 지연</span>
             <span class="ba-row-val">0일</span>
           </div>
@@ -2432,10 +2387,6 @@ function runSimulation(taskId, delayDays) {
           <div class="ba-row">
             <span class="ba-row-label">우선순위 점수</span>
             <span class="ba-row-val">${result.newPriority}점</span>
-          </div>
-          <div class="ba-row">
-            <span class="ba-row-label">조직 건강 점수</span>
-            <span class="ba-row-val">${result.newHealth} ${healthArrow}</span>
           </div>
           <div class="ba-row">
             <span class="ba-row-label">배포 추가 지연</span>

@@ -16,11 +16,12 @@
  */
 function buildPresentationSteps() {
   // 런타임 데이터에서 동적으로 문구 생성
-  const { score, status } = calculateHealthScore();
+  const { status } = generateDailyBriefing();
   const dangerProj = projects.filter(p => p.status === 'danger')[0];
   const redKpi     = kpis.find(k => getKpiStatus(k.current, k.target) === 'red');
   const topTask    = getSortedTasks().filter(t => !t.isDone)[0];
   const unreadMails = mails.filter(m => m.unread && !AppState.repliedMails?.has(m.id)).length;
+  const riskSignalCount = (AppState.riskSignals || []).length;
 
   return [
     {
@@ -29,8 +30,8 @@ function buildPresentationSteps() {
       targetId: 'briefing-card',
       title: '① Overview Command Center',
       body: `최종 제출본은 메뉴별 페이지 방식으로 재구성되었습니다.<br>
-             현재 상태는 <span class="pres-highlight-text">${status}</span>, 조직 건강 점수는
-             <span class="pres-highlight-text">${score}점</span>입니다.<br>
+             현재 운영 상태는 <span class="pres-highlight-text">${status}</span>,
+             경고 신호는 <span class="pres-highlight-text">${riskSignalCount}건</span>입니다.<br>
              <br>Overview는 브리핑, 지식 지도, 포스트잇, 업무 유틸리티, 환율 비용 신호를 한 번에 확인하는 시작 화면입니다.`,
       position: 'below'
     },
@@ -74,7 +75,7 @@ function buildPresentationSteps() {
       targetId: 'section-simulation',
       title: '⑤ Risk + Scenario Simulation',
       body: `Risk 페이지는 SWOT, Hot Issue, 시나리오 시뮬레이션을 통합했습니다.<br>
-             지연 일수를 조정하면 KPI, 조직 건강 점수, 배포 지연, 고객 영향을 한 번에 예측합니다.`,
+             지연 일수를 조정하면 KPI, 배포 지연, 고객 영향을 한 번에 예측합니다.`,
       position: 'below'
     },
     {

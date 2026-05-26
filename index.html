@@ -187,17 +187,15 @@
         <li class="admin-nav-item is-admin-hidden"><a href="#page-admin" class="nav-item" data-section="admin">       <span class="nav-icon">🛡️</span><span class="nav-label">Admin</span></a></li>
       </ul>
 
-      <!-- 사이드바 하단: Health Score 미니 위젯 -->
+      <!-- 사이드바 하단: 제출 상태 요약 -->
       <div class="sidebar-footer">
-        <div class="health-mini">
-          <div class="health-mini-label">조직 건강 점수</div>
-          <div class="health-mini-row">
-            <span id="sidebar-health-score" class="health-mini-value">--</span>
-            <span class="health-mini-unit">/ 100</span>
+        <div class="sidebar-status-mini">
+          <div class="sidebar-status-label">Submission Ready</div>
+          <div class="sidebar-status-row">
+            <span class="sidebar-status-dot"></span>
+            <strong>Railway / API</strong>
           </div>
-          <div class="health-mini-bar-wrap">
-            <div id="sidebar-health-bar" class="health-mini-bar"></div>
-          </div>
+          <div class="sidebar-status-copy">환경변수 연결 후 제출 URL만 갱신</div>
         </div>
       </div>
     </nav>

@@ -1008,14 +1008,14 @@ function renderSettlementAnalytics(period = document.querySelector('.period-tab.
 
   const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const overdue = getSortedTasks().filter(t => getDaysLeft(t.dueDate) <= 0 && !t.isDone).length;
-  const health = calculateHealthScore();
+  const riskSignals = AppState.riskSignals?.length || 0;
   const labelMap = { daily: '일일', weekly: '주간', monthly: '월간', quarterly: '분기', yearly: '연간' };
   const multiplier = { daily: 1, weekly: 5, monthly: 21, quarterly: 63, yearly: 252 }[period] || 1;
 
   summary.innerHTML = `
     <div class="settlement-line"><span>결산 기간</span><strong>${labelMap[period]}</strong></div>
     <div class="settlement-line"><span>예상 누적 경비</span><strong>${formatWon(total * multiplier)}</strong></div>
-    <div class="settlement-line"><span>조직 건강 점수</span><strong>${health.score}/100 · ${health.status}</strong></div>
+    <div class="settlement-line"><span>운영 경고 신호</span><strong>${riskSignals}건</strong></div>
     <div class="settlement-line"><span>지연 업무</span><strong>${overdue}건</strong></div>
     <div class="settlement-line"><span>자동 메일 상태</span><strong>${FinalRuntime.config.features.gmail ? 'Gmail Webhook 연결' : 'Webhook 미설정'}</strong></div>
   `;
@@ -1077,15 +1077,16 @@ function initGmailAutomation() {
 }
 
 function buildDailyMailBody() {
-  const health = calculateHealthScore();
   const topTasks = getSortedTasks().filter(t => !t.isDone).slice(0, 3);
   const expenseTotal = (FinalRuntime.expenseRows.length ? FinalRuntime.expenseRows : sampleExpenses)
     .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const urgentMails = mails.filter(m => m.unread && m.priority === 'high' && !AppState.repliedMails?.has(m.id)).length;
+  const dangerProjects = projects.filter(p => p.status === 'danger').length;
 
   return [
     `[WorkOS 일일 결산] ${new Date().toISOString().slice(0, 10)}`,
     '',
-    `조직 건강 점수: ${health.score}/100 (${health.status})`,
+    `운영 경고 신호: 위험 프로젝트 ${dangerProjects}건 / 긴급 메일 ${urgentMails}건 / KPI 경고 ${countKpiAlerts()}건`,
     `공동 경비 누적: ${formatWon(expenseTotal)}`,
     '',
     '우선 처리 업무',

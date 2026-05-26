@@ -373,6 +373,40 @@ input, select, textarea { font-family: inherit; }
   border-top: 1px solid var(--border-soft);
   flex-shrink: 0;
 }
+.sidebar-status-mini {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: rgba(154, 219, 232, 0.07);
+}
+.sidebar-status-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.sidebar-status-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-main);
+  font-size: 12px;
+}
+.sidebar-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 10px rgba(168, 221, 181, 0.42);
+}
+.sidebar-status-copy {
+  color: var(--text-sub);
+  font-size: 10px;
+  line-height: 1.45;
+}
 .health-mini { display: flex; flex-direction: column; gap: 4px; }
 .health-mini-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .health-mini-row { display: flex; align-items: baseline; gap: 2px; }
@@ -747,6 +781,9 @@ input, select, textarea { font-family: inherit; }
   border-radius: var(--radius);
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--border-soft);
+}
+.briefing-status-box {
+  min-width: 116px;
 }
 .briefing-score-num { font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .briefing-score-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
