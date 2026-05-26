@@ -2844,10 +2844,16 @@ select {
 }
 .briefing-orb::before {
   content: "AI";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
   font-family: var(--font-display);
   font-size: 22px;
+  line-height: 1;
   color: #DFFBFF;
   text-shadow: 0 0 14px var(--hud-cyan);
+  transform: translateY(1px);
 }
 .briefing-orb::after {
   content: "";
