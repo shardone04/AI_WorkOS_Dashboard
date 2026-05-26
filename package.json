@@ -1,0 +1,13 @@
+{
+  "name": "workos-ai-command-center",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Final WorkOS AI dashboard with Railway-ready API integrations.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WorkOS AI Command Center</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- =========================
+  JARVIS / HUD BACKGROUND LAYERS
+========================= -->
+<div class="hud-background" aria-hidden="true">
+  <div class="hud-grid"></div>
+  <div class="hud-radial hud-radial--left"></div>
+  <div class="hud-radial hud-radial--right"></div>
+  <div class="scanline-overlay"></div>
+  <div class="hud-vignette"></div>
+</div>
+
+<!-- =========================
+  PRESENTATION MODE OVERLAY
+========================= -->
+<div id="presentation-overlay" class="pres-overlay hidden" aria-live="polite">
+  <!-- 어두운 배경 -->
+  <div class="pres-backdrop"></div>
+
+  <!-- 스텝 툴팁 카드 -->
+  <div id="pres-tooltip" class="pres-tooltip">
+    <div class="pres-tooltip-header">
+      <span id="pres-step-badge" class="pres-step-badge">Step 1 / 8</span>
+      <button id="pres-close-btn" class="pres-close-btn" aria-label="프레젠테이션 종료">✕ ESC</button>
+    </div>
+    <div id="pres-tooltip-body" class="pres-tooltip-body"></div>
+    <div class="pres-tooltip-footer">
+      <div id="pres-progress-dots" class="pres-progress-dots"></div>
+      <div class="pres-nav-btns">
+        <button id="pres-prev-btn" class="btn btn--ghost btn--sm">◀ 이전</button>
+        <button id="pres-next-btn" class="btn btn--primary btn--sm">다음 ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하이라이트 링 (JS로 위치 조정) -->
+  <div id="pres-highlight-ring" class="pres-highlight-ring"></div>
+</div>
+
+<!-- =========================
+  TOAST CONTAINER
+========================= -->
+<div id="toast-container" aria-live="polite"></div>
+
+<!-- =========================
+  COMMAND PALETTE OVERLAY
+========================= -->
+<div id="command-palette-overlay" class="cmd-overlay hidden" role="dialog" aria-modal="true">
+  <div class="cmd-box">
+    <div class="cmd-input-wrap">
+      <span class="cmd-icon">⌘</span>
+      <input id="cmd-input" type="text" placeholder="검색어를 입력하세요... (프로젝트, 업무, KPI, 메일)" autocomplete="off" />
+      <kbd class="cmd-esc">ESC</kbd>
+    </div>
+    <div id="cmd-results" class="cmd-results"></div>
+  </div>
+</div>
+
+<!-- =========================
+  MODAL OVERLAY
+========================= -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div id="modal-box" class="modal-box">
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- =========================
+  APP ROOT
+========================= -->
+<div id="app" class="app-root">
+
+  <!-- =====================
+    HEADER
+  ===================== -->
+  <header id="header" class="header">
+    <!-- 좌측: 로고 + 햄버거 -->
+    <div class="header-left">
+      <button id="sidebar-toggle" class="sidebar-toggle" aria-label="사이드바 토글">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="logo">
+        <span class="logo-orb" aria-hidden="true"></span>
+        <span class="logo-text">WorkOS <strong>AI</strong></span>
+        <span class="logo-sub">Command Center</span>
+      </div>
+    </div>
+
+    <!-- 중앙: 전역 검색 -->
+    <div class="header-center">
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input
+          id="global-search"
+          type="text"
+          class="search-input"
+          placeholder="검색 또는 ⌘K 로 명령 팔레트 열기"
+          autocomplete="off"
+          aria-label="전역 검색"
+        />
+      </div>
+    </div>
+
+    <!-- 우측: 시간, 알림, 테마, 프로필 -->
+    <div class="header-right">
+      <div id="header-datetime" class="header-datetime" aria-live="polite"></div>
+
+      <!-- 조직 상태 배지 -->
+      <div id="org-status-badge" class="org-badge org-badge--warning">
+        <span class="org-badge-dot"></span>
+        <span id="org-badge-text">Warning</span>
+      </div>
+
+      <!-- 알림 버튼 -->
+      <button id="notif-btn" class="icon-btn" aria-label="알림">
+        🔔
+        <span id="notif-count" class="badge-count">3</span>
+      </button>
+
+      <!-- Presentation Mode 버튼 -->
+      <button id="presentation-btn" class="btn btn--ghost btn--sm" aria-label="프레젠테이션 모드" title="Presentation Mode (데모)">
+        <span>🎬</span> <span class="pres-btn-label">Demo</span>
+      </button>
+
+      <!-- 테마 토글 -->
+      <button id="theme-toggle" class="icon-btn" aria-label="테마 변경" title="다크/라이트 모드 전환">
+        🌙
+      </button>
+
+      <!-- Google Login -->
+      <button id="google-auth-btn" class="btn btn--ghost btn--sm" aria-label="Google 로그인">
+        <span>G</span> <span class="google-auth-label">Login</span>
+      </button>
+
+      <!-- 사용자 프로필 -->
+      <div class="user-profile" id="user-profile-btn" style="cursor:pointer" title="프로필 / 설정">
+        <div class="avatar" aria-hidden="true">AI</div>
+        <div class="user-info">
+          <span class="user-name">관리자</span>
+          <span class="user-role">Ops Manager</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =====================
+    BODY WRAPPER
+  ===================== -->
+  <div class="body-wrap">
+
+    <!-- ===================
+      LEFT SIDEBAR
+    =================== -->
+    <nav id="sidebar" class="sidebar" aria-label="주 내비게이션">
+      <ul class="nav-list">
+        <li><a href="#page-overview"      class="nav-item active"  data-section="briefing">    <span class="nav-icon">🏠</span><span class="nav-label">Overview</span></a></li>
+        <li><a href="#page-projects"      class="nav-item"         data-section="projects">    <span class="nav-icon">📁</span><span class="nav-label">Projects</span></a></li>
+        <li><a href="#page-tasks"         class="nav-item"         data-section="tasks">       <span class="nav-icon">✅</span><span class="nav-label">Tasks</span></a></li>
+        <li><a href="#page-calendar"      class="nav-item"         data-section="calendar">    <span class="nav-icon">📅</span><span class="nav-label">Calendar</span></a></li>
+        <li><a href="#page-kpi"           class="nav-item"         data-section="kpi">         <span class="nav-icon">📊</span><span class="nav-label">KPI / 결산</span></a></li>
+        <li><a href="#page-risk"          class="nav-item"         data-section="risk">        <span class="nav-icon">⚠️</span><span class="nav-label">Risk &amp; Issues</span></a></li>
+        <li><a href="#page-mail"          class="nav-item"         data-section="mail">        <span class="nav-icon">📧</span><span class="nav-label">Mail</span>   <span id="nav-mail-count" class="nav-badge"></span></a></li>
+        <li><a href="#page-feed"          class="nav-item"         data-section="feed">        <span class="nav-icon">📢</span><span class="nav-label">Announcements</span></a></li>
+        <li><a href="#page-teamchat"      class="nav-item"         data-section="teamchat">    <span class="nav-icon">💬</span><span class="nav-label">Team Chat</span></a></li>
+        <li><a href="#page-meeting"       class="nav-item"         data-section="meeting">     <span class="nav-icon">🎙️</span><span class="nav-label">Meeting AI</span></a></li>
+        <li><a href="#page-expenses"      class="nav-item"         data-section="expenses">    <span class="nav-icon">💳</span><span class="nav-label">Expenses</span></a></li>
+        <li><a href="#page-postits"       class="nav-item"         data-section="postits">     <span class="nav-icon">🗒️</span><span class="nav-label">Post-it</span></a></li>
+        <li><a href="#page-branch"        class="nav-item"         data-section="branch">      <span class="nav-icon">🌿</span><span class="nav-label">Branch Model</span></a></li>
+        <li><a href="#page-exchange"      class="nav-item"         data-section="exchange">    <span class="nav-icon">💱</span><span class="nav-label">Exchange</span></a></li>
+        <li><a href="#page-resource"      class="nav-item"         data-section="resource">    <span class="nav-icon">👥</span><span class="nav-label">Resources</span></a></li>
+        <li><a href="#page-admin"         class="nav-item"         data-section="admin">       <span class="nav-icon">🛡️</span><span class="nav-label">Admin</span></a></li>
+        <li><a href="#page-integrations"  class="nav-item"         data-section="integrations"><span class="nav-icon">🔌</span><span class="nav-label">Integrations</span></a></li>
+        <li><a href="#page-simulation"    class="nav-item"         data-section="simulation">  <span class="nav-icon">🔬</span><span class="nav-label">Simulation</span></a></li>
+      </ul>
+
+      <!-- 사이드바 하단: Health Score 미니 위젯 -->
+      <div class="sidebar-footer">
+        <div class="health-mini">
+          <div class="health-mini-label">조직 건강 점수</div>
+          <div class="health-mini-row">
+            <span id="sidebar-health-score" class="health-mini-value">--</span>
+            <span class="health-mini-unit">/ 100</span>
+          </div>
+          <div class="health-mini-bar-wrap">
+            <div id="sidebar-health-bar" class="health-mini-bar"></div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ===================
+      MAIN DASHBOARD
+    =================== -->
+    <main id="main-content" class="main-content" tabindex="-1">
+
+      <!-- 1. AI Daily Briefing -->
+      <section id="section-briefing" class="section">
+        <div id="briefing-card" class="briefing-card card glass">
+          <!-- JS로 렌더링 -->
+          <div class="skeleton-placeholder">AI Daily Briefing 로딩 중...</div>
+        </div>
+      </section>
+
+      <!-- 2. Executive Summary Cards -->
+      <section id="section-summary" class="section">
+        <div id="summary-cards" class="summary-grid">
+          <!-- JS로 8개 카드 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 2-1. Command Knowledge Map -->
+      <section id="section-neural-map" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🧠</span> Command Knowledge Map
+          </h2>
+          <div class="section-actions">
+            <span class="badge badge--cyan">Menu Graph</span>
+          </div>
+        </div>
+        <div class="neural-shell card glass">
+          <div class="neural-map" id="neural-map" aria-label="대시보드 메뉴 지식 구조도">
+            <svg class="neural-links" viewBox="0 0 900 360" aria-hidden="true">
+              <line x1="450" y1="180" x2="175" y2="76"></line>
+              <line x1="450" y1="180" x2="450" y2="54"></line>
+              <line x1="450" y1="180" x2="725" y2="76"></line>
+              <line x1="450" y1="180" x2="165" y2="246"></line>
+              <line x1="450" y1="180" x2="450" y2="306"></line>
+              <line x1="450" y1="180" x2="738" y2="246"></line>
+              <line x1="175" y1="76" x2="165" y2="246"></line>
+              <line x1="725" y1="76" x2="738" y2="246"></line>
+              <line x1="450" y1="54" x2="725" y2="76"></line>
+              <line x1="450" y1="306" x2="738" y2="246"></line>
+            </svg>
+            <button class="neural-node neural-node--core" data-page-target="briefing">Command<br>Center</button>
+            <button class="neural-node neural-node--projects" data-page-target="projects">Projects</button>
+            <button class="neural-node neural-node--kpi" data-page-target="kpi">KPI</button>
+            <button class="neural-node neural-node--risk" data-page-target="risk">Risk</button>
+            <button class="neural-node neural-node--team" data-page-target="teamchat">Team</button>
+            <button class="neural-node neural-node--meeting" data-page-target="meeting">Meeting AI</button>
+            <button class="neural-node neural-node--expense" data-page-target="expenses">Expense</button>
+          </div>
+          <div class="neural-insight" id="neural-insight">
+            <div class="neural-insight-title">오늘의 운영 연결</div>
+            <div class="neural-insight-body">프로젝트 지연, KPI 경고, 팀 부하, 공동 경비를 한 화면에서 연결해 조율합니다.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2-2. Post-it Board -->
+      <section id="section-postits" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🗒️</span> Team Post-it Board
+          </h2>
+          <div class="section-actions">
+            <select id="postit-period" class="form-select compact-select" aria-label="포스트잇 기간">
+              <option value="daily">일일</option>
+              <option value="weekly">주간</option>
+              <option value="monthly">월간</option>
+              <option value="quarterly">분기</option>
+              <option value="yearly">연간</option>
+            </select>
+          </div>
+        </div>
+        <div class="postit-shell card glass">
+          <div class="postit-compose">
+            <input id="postit-input" class="form-input" type="text" placeholder="공유할 메모를 입력하세요" />
+            <select id="postit-color" class="form-select compact-select" aria-label="포스트잇 색상">
+              <option value="cyan">Cyan</option>
+              <option value="yellow">Yellow</option>
+              <option value="pink">Pink</option>
+              <option value="green">Green</option>
+            </select>
+            <button id="postit-add-btn" class="btn btn--primary btn--sm">추가</button>
+          </div>
+          <div id="postit-board" class="postit-board"></div>
+        </div>
+      </section>
+
+      <!-- 2-3. Work Utilities -->
+      <section id="section-work-utilities" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🎧</span> Work Utilities
+          </h2>
+        </div>
+        <div class="utility-grid">
+          <div class="utility-panel card glass">
+            <div class="utility-panel-title">Healing Player</div>
+            <div class="music-player">
+              <button id="music-toggle-btn" class="btn btn--primary btn--sm">재생</button>
+              <select id="music-mode" class="form-select compact-select" aria-label="음악 모드">
+                <option value="focus">Focus Pad</option>
+                <option value="rain">Soft Rain</option>
+                <option value="cafe">Cafe Low</option>
+              </select>
+              <input id="music-volume" type="range" min="0" max="100" value="35" class="form-range" aria-label="음량" />
+            </div>
+          </div>
+          <div class="utility-panel card glass">
+            <div class="utility-panel-title">Lunch Recommender</div>
+            <div class="lunch-controls">
+              <input id="lunch-location" class="form-input" type="text" value="동대문구 외대앞" aria-label="점심 위치" />
+              <select id="lunch-category" class="form-select compact-select" aria-label="점심 카테고리">
+                <option value="중식">중식</option>
+                <option value="한식">한식</option>
+                <option value="일식">일식</option>
+                <option value="분식">분식</option>
+              </select>
+              <button id="lunch-pick-btn" class="btn btn--ghost btn--sm">추천</button>
+            </div>
+            <div id="lunch-result" class="lunch-result"></div>
+          </div>
+        </div>
+      </section>
+
+
+
+      <!-- 2-1. Exchange Rate Monitor moved into Overview -->
+      <section id="section-exchange" class="section overview-exchange-section">
+        <div class="section-header overview-exchange-header">
+          <h2 class="section-title">
+            <span class="section-icon">💱</span> Exchange Rate Monitor
+          </h2>
+          <div class="section-actions">
+            <span id="overview-exchange-alert" class="badge badge--warning">환율 리스크 분석 중</span>
+          </div>
+        </div>
+        <div class="overview-exchange-card card glass">
+          <div class="overview-exchange-copy">
+            <div class="overview-exchange-kicker">GLOBAL COST SIGNAL</div>
+            <div class="overview-exchange-title">해외 결제·클라우드 비용 변동 감지</div>
+            <p class="overview-exchange-desc">
+              통화별 절대 환율이 아니라 <strong>7일 변동률</strong>을 기준으로 비교해, 규모가 다른 통화도 한눈에 확인합니다.
+            </p>
+          </div>
+          <div class="overview-exchange-chart-wrap">
+            <canvas id="overview-exchange-chart" aria-label="환율 7일 추이 그래프"></canvas>
+          </div>
+          <div id="overview-exchange-list" class="overview-exchange-list">
+            <!-- JS로 핵심 환율 3개 렌더링 -->
+          </div>
+        </div>
+        <div id="exchange-grid" class="exchange-grid exchange-grid--full">
+          <!-- JS로 전체 환율 카드 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 3. Project Milestone Tracker -->
+      <section id="section-projects" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📁</span> Project Milestones
+          </h2>
+          <div class="section-actions">
+            <span id="projects-danger-count" class="badge badge--danger"></span>
+          </div>
+        </div>
+        <div id="projects-list" class="projects-grid">
+          <!-- JS로 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 4. Countdown Timer -->
+      <section id="section-countdown" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">⏱️</span> Countdown Timers
+          </h2>
+        </div>
+        <div id="countdown-list" class="countdown-grid">
+          <!-- JS로 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 5. KPI Traffic Light -->
+      <section id="section-kpi" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📊</span> KPI Traffic Light
+          </h2>
+          <span id="kpi-alert-count" class="badge badge--warning"></span>
+        </div>
+        <div id="kpi-grid" class="kpi-grid">
+          <!-- JS로 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 6. SWOT Risk Matrix + Risk Signal Stream + Radar Chart -->
+      <section id="section-risk" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">⚠️</span> SWOT Risk Matrix
+          </h2>
+        </div>
+        <div class="risk-layout">
+          <div id="swot-matrix" class="swot-matrix">
+            <!-- JS로 4개 사분면 렌더링 -->
+          </div>
+          <div class="risk-signal-panel">
+            <div class="panel-title">
+              <span class="signal-dot pulse-danger"></span>
+              Risk Signal Stream
+            </div>
+            <div id="risk-signal-list" class="risk-signal-list">
+              <!-- JS로 렌더링 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Risk Radar Chart -->
+        <div class="radar-card card glass" id="radar-card">
+          <div class="radar-card-title">
+            <span>📡</span> Risk Radar — 조직 위험 분포
+            <span class="badge badge--purple" style="margin-left:auto;">Chart.js</span>
+          </div>
+          <div class="radar-chart-wrap">
+            <canvas id="risk-radar-chart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Priority Task Queue -->
+      <section id="section-tasks" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">✅</span> Priority Task Queue
+          </h2>
+          <div class="task-filters">
+            <button class="filter-btn active" data-filter="all">전체</button>
+            <button class="filter-btn" data-filter="urgent">긴급</button>
+            <button class="filter-btn" data-filter="in-progress">진행 중</button>
+            <button class="filter-btn" data-filter="done">완료</button>
+          </div>
+        </div>
+        <div class="task-search-wrap">
+          <input id="task-search" type="text" class="task-search-input" placeholder="업무 검색..." />
+          <button id="add-task-btn" class="btn btn--primary btn--sm">+ 업무 추가</button>
+        </div>
+        <div id="tasks-list" class="tasks-list">
+          <!-- JS로 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 8. Calendar -->
+      <section id="section-calendar" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📅</span> Calendar Scheduler
+          </h2>
+          <button id="add-event-btn" class="btn btn--ghost btn--sm">+ 일정 추가</button>
+        </div>
+        <div class="calendar-layout">
+          <div id="mini-calendar" class="mini-calendar">
+            <!-- JS로 월간 캘린더 렌더링 -->
+          </div>
+          <div class="today-schedule">
+            <div class="panel-title">오늘의 일정</div>
+            <div id="today-events" class="today-events">
+              <!-- JS로 렌더링 -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. Company Mail Monitor -->
+      <section id="section-mail" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📧</span> Company Mail Monitor
+          </h2>
+          <span id="unread-mail-count" class="badge badge--danger"></span>
+        </div>
+        <div id="mail-list" class="mail-list">
+          <!-- JS로 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 10. Organization News Feed -->
+      <section id="section-feed" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📢</span> Organization Feed
+          </h2>
+          <div class="feed-filters">
+            <button class="filter-btn active" data-feed-filter="all">전체</button>
+            <button class="filter-btn" data-feed-filter="배포">배포</button>
+            <button class="filter-btn" data-feed-filter="정책">정책</button>
+            <button class="filter-btn" data-feed-filter="교육">교육</button>
+          </div>
+        </div>
+        <div id="feed-list" class="feed-list">
+          <!-- JS로 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 11. Hot Issue Radar -->
+      <section id="section-hotissue" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🔥</span> Hot Issue Radar
+          </h2>
+        </div>
+        <div id="hotissue-list" class="hotissue-list">
+          <!-- JS로 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 12. Branch Model Viewer -->
+      <section id="section-branch" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🌿</span> Branch Model
+          </h2>
+        </div>
+        <div class="branch-layout">
+          <div id="branch-graph" class="branch-graph">
+            <!-- JS로 ASCII-style 그래프 렌더링 -->
+          </div>
+          <div id="branch-ai-rec" class="branch-ai-rec card glass">
+            <!-- AI 병합 추천 -->
+          </div>
+        </div>
+      </section>
+
+
+      <!-- 14. Resource Load Monitor -->
+      <section id="section-resource" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">👥</span> Resource Load Monitor
+          </h2>
+        </div>
+        <div id="resource-list" class="resource-list">
+          <!-- JS로 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 15. Decision Log -->
+      <section id="section-decision" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📝</span> Decision Log
+          </h2>
+        </div>
+        <div id="decision-timeline" class="decision-timeline">
+          <!-- JS로 타임라인 렌더링 -->
+        </div>
+      </section>
+
+      <!-- 16. Scenario Simulation -->
+      <section id="section-simulation" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🔬</span> Scenario Simulation
+          </h2>
+          <span class="badge badge--purple">AI 예측</span>
+        </div>
+        <div class="simulation-layout card glass">
+          <div class="simulation-controls">
+            <div class="form-group">
+              <label for="sim-task-select">시뮬레이션 업무</label>
+              <select id="sim-task-select" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label for="sim-delay-input">지연 일수 <span id="sim-delay-value">3</span>일</label>
+              <input id="sim-delay-input" type="range" min="1" max="14" value="3" class="form-range" />
+            </div>
+            <button id="sim-run-btn" class="btn btn--primary">
+              ▶ 시뮬레이션 실행
+            </button>
+          </div>
+          <div id="sim-result" class="sim-result hidden">
+            <!-- JS로 결과 렌더링 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 17. Team Chat / Slack Bridge -->
+      <section id="section-teamchat" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">💬</span> Team Chat
+          </h2>
+          <div class="section-actions">
+            <span id="slack-status-badge" class="badge badge--muted">Slack 대기</span>
+          </div>
+        </div>
+        <div class="teamchat-layout">
+          <div class="teamchat-main card glass">
+            <div id="teamchat-messages" class="teamchat-messages"></div>
+            <div class="teamchat-input-row">
+              <select id="teamchat-channel" class="form-select compact-select" aria-label="채널 선택">
+                <option value="#ops-dashboard">#ops-dashboard</option>
+                <option value="#project-risk">#project-risk</option>
+                <option value="#finance-shared">#finance-shared</option>
+              </select>
+              <input id="teamchat-input" class="form-input" type="text" placeholder="업무 메시지를 입력하세요" />
+              <button id="teamchat-send-btn" class="btn btn--primary btn--sm">전송</button>
+            </div>
+          </div>
+          <div class="teamchat-side card glass">
+            <div class="utility-panel-title">Team Presence</div>
+            <div id="team-presence-list" class="team-presence-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 18. Meeting Audio AI -->
+      <section id="section-meeting-ai" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🎙️</span> Meeting Audio AI
+          </h2>
+          <div class="section-actions">
+            <span id="transcription-status" class="badge badge--muted">대기</span>
+          </div>
+        </div>
+        <div class="meeting-ai-layout">
+          <div class="meeting-ai-uploader card glass">
+            <input id="meeting-audio-file" class="form-input" type="file" accept="audio/mp3,audio/mpeg,audio/mp4,audio/m4a,audio/wav,audio/webm" />
+            <button id="meeting-transcribe-btn" class="btn btn--primary">음성 전사</button>
+            <textarea id="meeting-transcript" class="form-input meeting-textarea" placeholder="전사된 회의 내용이 표시됩니다"></textarea>
+          </div>
+          <div class="meeting-ai-summary card glass">
+            <div class="utility-panel-title">Meeting Summary.md</div>
+            <div id="meeting-summary-output" class="meeting-summary-output"></div>
+            <div class="meeting-summary-actions">
+              <button id="meeting-summary-btn" class="btn btn--ghost btn--sm">요약 생성</button>
+              <button id="meeting-copy-md-btn" class="btn btn--ghost btn--sm">MD 복사</button>
+              <button id="meeting-download-md-btn" class="btn btn--primary btn--sm">MD 저장</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 19. Shared Expense Dashboard -->
+      <section id="section-expense" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">💳</span> Shared Expense Dashboard
+          </h2>
+          <div class="section-actions">
+            <span id="expense-sync-status" class="badge badge--muted">Sheet 대기</span>
+          </div>
+        </div>
+        <div class="expense-shell card glass">
+          <div class="expense-controls">
+            <input id="sheet-url-input" class="form-input" type="url" placeholder="Google Sheet CSV 공개 링크 또는 Apps Script URL" />
+            <button id="expense-sync-btn" class="btn btn--primary btn--sm">동기화</button>
+          </div>
+          <div class="expense-kpis" id="expense-kpis"></div>
+          <div class="expense-content">
+            <div class="expense-chart-wrap">
+              <canvas id="expense-category-chart" aria-label="공동 경비 항목별 차트"></canvas>
+            </div>
+            <div id="expense-table" class="expense-table"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 20. Daily / Weekly / Monthly Settlement -->
+      <section id="section-settlement" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📈</span> Settlement Analytics
+          </h2>
+          <div id="settlement-tabs" class="period-tabs" role="tablist" aria-label="결산 기간">
+            <button class="period-tab active" data-period="daily">일일</button>
+            <button class="period-tab" data-period="weekly">주간</button>
+            <button class="period-tab" data-period="monthly">월간</button>
+            <button class="period-tab" data-period="quarterly">분기</button>
+            <button class="period-tab" data-period="yearly">연간</button>
+          </div>
+        </div>
+        <div class="settlement-grid">
+          <div class="settlement-panel card glass">
+            <div id="settlement-summary" class="settlement-summary"></div>
+          </div>
+          <div class="settlement-panel card glass">
+            <canvas id="settlement-chart" aria-label="기간별 결산 차트"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- 21. Gmail Daily Automation -->
+      <section id="section-gmail-automation" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">📨</span> Daily Summary Mail
+          </h2>
+          <div class="section-actions">
+            <span id="gmail-status-badge" class="badge badge--muted">Gmail 대기</span>
+          </div>
+        </div>
+        <div class="gmail-automation card glass">
+          <input id="daily-mail-to" class="form-input" type="email" placeholder="수신 메일 주소" />
+          <button id="daily-mail-preview-btn" class="btn btn--ghost btn--sm">미리보기</button>
+          <button id="daily-mail-send-btn" class="btn btn--primary btn--sm">일일 결산 발송</button>
+          <pre id="daily-mail-preview" class="mail-preview"></pre>
+        </div>
+      </section>
+
+      <!-- 22. Admin Console -->
+      <section id="section-admin" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🛡️</span> Admin Console
+          </h2>
+          <div class="section-actions">
+            <span id="admin-status-badge" class="badge badge--warning">잠김</span>
+          </div>
+        </div>
+        <div class="admin-shell">
+          <div id="admin-login-card" class="admin-login-card card glass">
+            <div class="utility-panel-title">관리자 인증</div>
+            <input id="admin-password-input" class="form-input" type="password" placeholder="관리자 비밀번호" />
+            <button id="admin-login-btn" class="btn btn--primary">관리자 로그인</button>
+            <div class="admin-login-hint">데모 기본값: ADMIN-2026</div>
+          </div>
+          <div id="admin-console-card" class="admin-console-card card glass hidden">
+            <div class="admin-console-top">
+              <div>
+                <div class="utility-panel-title">Dashboard Publishing</div>
+                <div class="admin-console-sub">팀원별 공개 범위와 업무 보드를 조정합니다.</div>
+              </div>
+              <button id="admin-logout-btn" class="btn btn--ghost btn--sm">로그아웃</button>
+            </div>
+            <div id="admin-team-grid" class="admin-team-grid"></div>
+            <div id="admin-access-matrix" class="admin-access-matrix"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 23. API / Railway Integrations -->
+      <section id="section-integrations" class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span class="section-icon">🔌</span> Integrations &amp; Railway
+          </h2>
+          <div class="section-actions">
+            <span id="api-health-badge" class="badge badge--muted">API 확인 중</span>
+          </div>
+        </div>
+        <div id="integration-grid" class="integration-grid"></div>
+      </section>
+
+    </main><!-- /main-content -->
+
+    <!-- ===================
+      RIGHT AI COPILOT PANEL
+    =================== -->
+    <aside id="copilot-panel" class="copilot-panel" aria-label="AI Copilot">
+
+      <!-- 패널 헤더 -->
+      <div class="copilot-header">
+        <div class="copilot-title">
+          <span class="copilot-orb" aria-hidden="true"></span>
+          AI Copilot
+        </div>
+        <button id="copilot-toggle" class="icon-btn" aria-label="패널 닫기" title="AI 패널 접기/펼치기">◀</button>
+      </div>
+
+      <!-- 조직 건강 점수 -->
+      <div id="health-widget" class="health-widget card glass">
+        <div class="health-label">조직 건강 점수</div>
+        <div class="health-help">프로젝트 지연, KPI 경고, 긴급 메일, 미완료 업무, 리소스 과부하를 합산한 운영 안정도입니다.</div>
+        <div class="health-score-row">
+          <span id="health-score-value" class="health-score-value">--</span>
+          <span class="health-score-max">/ 100</span>
+          <span id="health-status-badge" class="badge">--</span>
+        </div>
+        <div class="health-bar-wrap">
+          <div id="health-bar" class="health-bar"></div>
+        </div>
+        <div id="health-factors" class="health-factors"></div>
+      </div>
+
+      <!-- 오늘의 추천 액션 -->
+      <div id="action-rec-widget" class="action-rec-widget card glass">
+        <div class="widget-title">
+          <span class="widget-icon">⚡</span> 오늘의 추천 액션
+        </div>
+        <ol id="action-rec-list" class="action-rec-list">
+          <!-- JS로 렌더링 -->
+        </ol>
+      </div>
+
+      <!-- 실시간 경고 -->
+      <div id="alert-widget" class="alert-widget card glass">
+        <div class="widget-title">
+          <span class="signal-dot pulse-danger"></span> 실시간 경고
+        </div>
+        <div id="alert-list" class="alert-list">
+          <!-- JS로 렌더링 -->
+        </div>
+      </div>
+
+      <!-- Telegram 전송 로그 -->
+      <div id="telegram-log-widget" class="telegram-log-widget card glass">
+        <div class="widget-title">
+          <span class="widget-icon">✈️</span> Telegram 전송 로그
+        </div>
+        <div id="telegram-log-list" class="telegram-log-list">
+          <p class="muted-text">아직 전송된 알림이 없습니다.</p>
+        </div>
+      </div>
+
+      <!-- AI Chatbot + AI 변호사 (탭) -->
+      <div id="section-chatbot" class="chatbot-widget card glass">
+
+        <!-- 탭 헤더 -->
+        <div class="ai-tab-header">
+          <button class="ai-tab-btn active" data-tab="work" id="tab-work-btn">
+            <span>🤖</span> 업무 AI
+          </button>
+          <button class="ai-tab-btn" data-tab="lawyer" id="tab-lawyer-btn">
+            <span>⚖️</span> AI 변호사
+          </button>
+          <div class="ai-tab-model-badge">Claude Sonnet</div>
+        </div>
+
+        <!-- ── 업무 AI 탭 ── -->
+        <div id="tab-panel-work" class="ai-tab-panel active">
+          <div class="tab-panel-top">
+            <button onclick="clearChatHistory()" class="btn btn--ghost btn--sm ai-clear-btn" title="대화 초기화">↺ 초기화</button>
+          </div>
+          <div id="chat-chips" class="chat-chips">
+            <button class="chip" data-q="오늘 가장 급한 업무 알려줘">🔥 급한 업무</button>
+            <button class="chip" data-q="위험 프로젝트 요약해줘">📁 위험 프로젝트</button>
+            <button class="chip" data-q="KPI 경고 원인 알려줘">📊 KPI 경고</button>
+            <button class="chip" data-q="고객 메일 요약해줘">📧 메일 요약</button>
+            <button class="chip" data-q="회의 전 체크리스트 만들어줘">📋 체크리스트</button>
+            <button class="chip" data-q="텔레그램 알림 보내줘">✈️ 텔레그램 전송</button>
+            <button class="chip" data-q="이번 주 병목 업무 알려줘">⚠️ 병목 업무</button>
+          </div>
+          <div id="chat-messages" class="chat-messages" role="log" aria-live="polite"></div>
+          <div class="chat-input-wrap">
+            <input id="chat-input" type="text" class="chat-input" placeholder="AI에게 질문하세요..." autocomplete="off" aria-label="챗봇 입력" />
+            <button id="chat-send-btn" class="btn btn--primary btn--icon" aria-label="전송">▶</button>
+          </div>
+        </div>
+
+        <!-- ── AI 변호사 탭 ── -->
+        <div id="tab-panel-lawyer" class="ai-tab-panel">
+          <div class="tab-panel-top">
+            <button onclick="clearLawyerHistory()" class="btn btn--ghost btn--sm ai-clear-btn" title="대화 초기화">↺ 초기화</button>
+            <button onclick="openLawSearchModal()" class="btn btn--ghost btn--sm ai-clear-btn law-search-btn" title="법령 검색">📖 법령 검색</button>
+          </div>
+          <div class="chat-chips">
+            <button class="chip chip--law" data-lq="초과근무 수당 기준 알려줘">⏰ 초과근무</button>
+            <button class="chip chip--law" data-lq="연차 계산 방법 알려줘">📅 연차 계산</button>
+            <button class="chip chip--law" data-lq="개인정보 처리 규정 알려줘">🔒 개인정보</button>
+            <button class="chip chip--law" data-lq="전자결재 법적 효력 알려줘">📝 전자결재</button>
+            <button class="chip chip--law" data-lq="직장 내 괴롭힘 규정 알려줘">🛡️ 직장 내 괴롭힘</button>
+            <button class="chip chip--law" data-lq="계약서 검토 포인트 알려줘">📋 계약 검토</button>
+          </div>
+          <div id="lawyer-messages" class="chat-messages lawyer-messages" role="log" aria-live="polite"></div>
+          <div class="chat-input-wrap">
+            <input id="lawyer-input" type="text" class="chat-input lawyer-input" placeholder="법률 질문을 입력하세요..." autocomplete="off" aria-label="AI 변호사 입력" />
+            <button id="lawyer-send-btn" class="btn btn--lawyer btn--icon" aria-label="전송">▶</button>
+          </div>
+          <div class="law-disclaimer">
+            ⚖️ 본 AI는 참고용이며 법적 효력이 없습니다. 중요한 법률 사항은 전문 변호사와 상담하세요.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 법령 검색 모달 -->
+      <div id="law-search-modal" class="law-search-modal hidden">
+        <div class="law-search-box">
+          <div class="law-search-header">
+            <span>📖 법령 검색 (Korean Law MCP)</span>
+            <button onclick="closeLawSearchModal()" class="icon-btn">✕</button>
+          </div>
+          <div class="law-search-input-wrap">
+            <input id="law-search-input" type="text" class="law-search-input" placeholder="법령명 또는 키워드 (예: 근로기준법 제50조)" />
+            <button class="btn btn--lawyer btn--sm" onclick="runLawSearch()">검색</button>
+          </div>
+          <div id="law-search-result" class="law-search-result">
+            <div class="law-search-placeholder">
+              <div style="font-size:32px;text-align:center;margin-bottom:8px;">⚖️</div>
+              <p style="text-align:center;color:var(--text-sub);">법령명이나 키워드를 입력해 검색하세요.</p>
+              <p style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:center;">예: 근로기준법, 개인정보보호법 제15조, 연차 휴가</p>
+            </div>
+          </div>
+          <div class="law-mcp-notice">
+            <span class="law-mcp-dot"></span>
+            Korean Law MCP 연동 — 법제처 Open API 기반
+            <a href="https://open.law.go.kr" target="_blank" class="law-link">API 키 발급 →</a>
+          </div>
+        </div>
+      </div>
+
+    </aside><!-- /copilot-panel -->
+
+    <!-- AI 패널 접혔을 때 다시 열기 탭 -->
+    <button id="copilot-reopen-tab" class="copilot-reopen-tab" aria-label="AI 패널 열기" title="AI 패널 열기" style="display:none">▶<br><span style="font-size:9px;letter-spacing:1px">AI</span></button>
+
+  </div><!-- /body-wrap -->
+</div><!-- /app-root -->
+
+<!-- =========================
+  SCRIPTS (순서 중요)
+========================= -->
+<script src="js/data.js"></script>
+<script src="js/riskEngine.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/chatbot.js"></script>
+<script src="js/presentation.js"></script>
+<script src="js/lawyer.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="js/integrations.js?v=20260526-final"></script>
+
+</body>
+</html>
