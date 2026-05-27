@@ -10,9 +10,11 @@ Railway는 Node 프로젝트의 `package.json`을 감지하고 `start` 스크립
 
 ## Railway Variables
 
-Railway에서 반드시 넣을 값은 `OPENAI_API_KEY` 하나입니다. 이 값이 있으면 Meeting Audio AI가 실제 OpenAI 전사를 사용합니다. 비워도 앱 자체는 실행되고 데모 전사로 동작하지만, 최종 제출에서는 실제 AI 연동을 보여주기 위해 입력하는 것을 권장합니다.
+Railway에서 실제 AI 연동을 보여주려면 `ANTHROPIC_API_KEY` 또는 `OPENAI_API_KEY`를 넣습니다. 둘 다 비워도 앱 자체는 실행되고 기본/데모 응답으로 동작합니다.
 
 ```env
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-4-5
 OPENAI_API_KEY=
 OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
 ```
@@ -29,9 +31,13 @@ GMAIL_WEBHOOK_URL=
 
 - `GOOGLE_CLIENT_ID` 공란: Google Demo User 로그인으로 동작
 - `ADMIN_PASSCODE` 공란: 기본 관리자 비밀번호 `ADMIN-2026` 사용
+- `ANTHROPIC_API_KEY` 공란: 업무 AI/AI 변호사는 로컬 규칙 기반 응답 사용. 사용자가 우측 `AI Copilot` 상단에 자신의 Claude API 키를 직접 입력할 수도 있음
+- `OPENAI_API_KEY` 공란: Meeting Audio AI는 실제 전사 대신 데모 전사 사용
 - `SLACK_WEBHOOK_URL` 공란: Slack 전송 대신 로컬 팀 채팅/데모 상태로 동작
 - `GOOGLE_SHEETS_CSV_URL` 공란: 서버 내장 공동 경비 샘플 데이터 사용
 - `GMAIL_WEBHOOK_URL` 공란: 일일 결산 미리보기/복사는 가능, 실제 메일 발송만 비활성
+
+사용자가 자신의 Claude API 키를 쓰고 싶다면 우측 `AI Copilot` 상단의 `Claude API` 입력칸에 직접 넣을 수 있습니다. 이 값은 GitHub나 Railway 환경변수에 저장되지 않고, 해당 브라우저 세션에서 업무 AI/AI 변호사 요청을 보낼 때만 서버로 전달됩니다.
 
 ## 샘플 데이터 파일
 
@@ -58,6 +64,7 @@ Google Sheets로 실제 연동하려면 `workos_shared_expenses.xlsx`를 Google 
 - `POST /api/admin/login`: 관리자 비밀번호 확인
 - `POST /api/slack/message`: Slack Webhook 메시지 전송
 - `GET /api/google-sheet`: Google Sheet CSV 또는 샘플 경비 데이터 반환
+- `POST /api/claude/chat`: Claude Messages API 또는 로컬 규칙 기반 응답 반환
 - `POST /api/transcribe`: OpenAI Audio transcription 또는 데모 전사 반환
 - `POST /api/gmail/daily-summary`: Gmail/Apps Script Webhook으로 일일 결산 발송
 
@@ -68,4 +75,5 @@ Gmail 실제 발송 설정은 `docs/gmail-webhook-setup.md`를 참고하세요.
 - Railway start command: https://docs.railway.com/guides/start-command
 - Railway GitHub/quick start: https://docs.railway.com/quick-start
 - Railway CLI deploy: https://docs.railway.com/cli/deploying
+- Claude Messages API: https://platform.claude.com/docs/en/build-with-claude/working-with-messages
 - OpenAI speech-to-text: https://platform.openai.com/docs/guides/speech-to-text

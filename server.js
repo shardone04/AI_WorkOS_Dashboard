@@ -72,6 +72,7 @@ async function handleApi(req, res, url) {
       features: {
         slack: Boolean(process.env.SLACK_WEBHOOK_URL),
         openai: Boolean(process.env.OPENAI_API_KEY),
+        anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
         googleSheets: Boolean(process.env.GOOGLE_SHEETS_CSV_URL),
         gmail: Boolean(process.env.GMAIL_WEBHOOK_URL),
         railway: Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.PORT)
@@ -124,11 +125,56 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/claude/chat') {
+    const body = await readJson(req, 512 * 1024);
+    const userApiKey = typeof body.userClaudeApiKey === 'string' ? body.userClaudeApiKey.trim() : '';
+    const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
+    const keySource = userApiKey ? 'user' : process.env.ANTHROPIC_API_KEY ? 'railway' : 'demo';
+
+    if (!apiKey || !body.message) {
+      sendJson(res, 200, { usedClaude: false, keySource: 'demo', text: '' });
+      return;
+    }
+
+    try {
+      const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
+      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 700,
+          temperature: 0.25,
+          system: buildClaudeSystemPrompt(body.mode),
+          messages: [
+            {
+              role: 'user',
+              content: buildClaudeUserPrompt(body)
+            }
+          ]
+        })
+      });
+
+      if (!claudeRes.ok) throw new Error(await claudeRes.text());
+      const data = await claudeRes.json();
+      const text = extractClaudeText(data);
+      sendJson(res, 200, { usedClaude: Boolean(text), keySource, model: data.model || model, text });
+    } catch (error) {
+      sendJson(res, 200, { usedClaude: false, keySource: 'demo', text: '' });
+    }
+    return;
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/transcribe') {
     const body = await readJson(req, 28 * 1024 * 1024);
     const apiKey = process.env.OPENAI_API_KEY;
+    const keySource = process.env.OPENAI_API_KEY ? 'railway' : 'demo';
     if (!apiKey || !body.audioBase64) {
-      sendJson(res, 200, { usedOpenAI: false, text: fallbackTranscript(body.fileName) });
+      sendJson(res, 200, { usedOpenAI: false, keySource: 'demo', text: fallbackTranscript(body.fileName) });
       return;
     }
 
@@ -148,9 +194,9 @@ async function handleApi(req, res, url) {
 
       if (!aiRes.ok) throw new Error(await aiRes.text());
       const data = await aiRes.json();
-      sendJson(res, 200, { usedOpenAI: true, text: data.text || '' });
+      sendJson(res, 200, { usedOpenAI: true, keySource, text: data.text || '' });
     } catch (error) {
-      sendJson(res, 200, { usedOpenAI: false, text: fallbackTranscript(body.fileName) });
+      sendJson(res, 200, { usedOpenAI: false, keySource: 'demo', text: fallbackTranscript(body.fileName) });
     }
     return;
   }
@@ -177,6 +223,51 @@ async function handleApi(req, res, url) {
   }
 
   sendJson(res, 404, { error: 'not_found' });
+}
+
+function buildClaudeSystemPrompt(mode) {
+  if (mode === 'lawyer') {
+    return [
+      'You are the WorkOS AI legal assistant for a Korean business dashboard.',
+      'Answer in Korean, be concise, and clearly distinguish practical guidance from legal advice.',
+      'Use the provided dashboard context when it is relevant. If the question requires a professional attorney, say so briefly.',
+      'Do not invent statutes or case numbers.'
+    ].join(' ');
+  }
+
+  return [
+    'You are the WorkOS AI Copilot for an operations dashboard.',
+    'Answer in Korean with short, actionable recommendations based on the provided dashboard context.',
+    'Prioritize projects, risks, KPI warnings, urgent mail, resource load, meetings, and expenses.',
+    'If the dashboard context is insufficient, say what should be checked next instead of pretending.'
+  ].join(' ');
+}
+
+function buildClaudeUserPrompt(body) {
+  const message = String(body.message || '').slice(0, 2000);
+  const context = JSON.stringify(body.context || {}, null, 2).slice(0, 9000);
+  return [
+    '사용자 질문:',
+    message,
+    '',
+    '대시보드 컨텍스트(JSON):',
+    context,
+    '',
+    '응답 형식:',
+    '- 3~6문장 또는 짧은 번호 목록',
+    '- 필요한 경우 바로 실행할 다음 액션 포함',
+    '- 불확실한 내용은 추정이라고 표시'
+  ].join('\n');
+}
+
+function extractClaudeText(data) {
+  if (!Array.isArray(data?.content)) return '';
+  return data.content
+    .filter(part => part && part.type === 'text' && typeof part.text === 'string')
+    .map(part => part.text.trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
 }
 
 async function serveStatic(pathname, res) {

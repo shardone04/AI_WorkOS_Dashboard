@@ -817,6 +817,18 @@
         <button id="copilot-toggle" class="icon-btn" aria-label="패널 닫기" title="AI 패널 접기/펼치기">◀</button>
       </div>
 
+      <div class="user-api-panel" aria-label="사용자 Claude API 키">
+        <div class="user-api-panel-top">
+          <span>Claude API</span>
+          <span id="user-api-status" class="user-api-status">Demo</span>
+        </div>
+        <div class="user-api-row">
+          <input id="user-claude-api-key" class="user-api-input" type="password" placeholder="Claude 키 입력" autocomplete="off" spellcheck="false" />
+          <button id="user-api-save-btn" class="user-api-btn" type="button">적용</button>
+          <button id="user-api-clear-btn" class="user-api-clear" type="button" aria-label="사용자 API 키 삭제">×</button>
+        </div>
+      </div>
+
       <!-- 오늘의 추천 액션 -->
       <div id="action-rec-widget" class="action-rec-widget card glass">
         <div class="widget-title">
@@ -952,7 +964,7 @@
 <script src="js/presentation.js"></script>
 <script src="js/lawyer.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="js/integrations.js?v=20260527-knowledge-hover"></script>
+<script src="js/integrations.js?v=20260527-claude-api-key"></script>
 
 </body>
 </html>

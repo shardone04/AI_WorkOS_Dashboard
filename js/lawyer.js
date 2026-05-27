@@ -146,7 +146,7 @@ function renderLawCitationCard(citation) {
    3. 사용자 입력 처리
 ============================================== */
 
-function handleLawyerSend() {
+async function handleLawyerSend() {
   const input = document.getElementById('lawyer-input');
   if (!input) return;
   const text = input.value.trim();
@@ -154,12 +154,30 @@ function handleLawyerSend() {
   input.value = '';
   appendLawyerUser(text);
   showLawyerTyping();
-  const delay = 700 + Math.random() * 600;
-  setTimeout(function() {
+  const minimumDelay = new Promise(resolve => setTimeout(resolve, 450));
+  try {
+    const claudeResult = typeof requestClaudeChat === 'function'
+      ? await requestClaudeChat(text, 'lawyer')
+      : null;
+    await minimumDelay;
     hideLawyerTyping();
+    if (claudeResult?.usedClaude && claudeResult.text) {
+      appendLawyerBot(claudeResult.text, {
+        '응답 엔진': claudeResult.keySource === 'user' ? 'User Claude API' : 'Railway Claude API',
+        '모델': claudeResult.model || 'Claude',
+        '주의': '실무 참고용, 최종 법률 판단은 전문가 확인'
+      });
+      return;
+    }
+  } catch (error) {
+    await minimumDelay;
+    hideLawyerTyping();
+  }
+
+  {
     const res = getLawyerResponse(text);
     appendLawyerBot(res.response, res.citation);
-  }, delay);
+  }
 }
 
 /* =============================================

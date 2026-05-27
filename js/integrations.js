@@ -15,6 +15,7 @@ const FinalRuntime = {
     features: {
       slack: false,
       openai: false,
+      anthropic: false,
       googleSheets: false,
       gmail: false,
       railway: false
@@ -22,6 +23,7 @@ const FinalRuntime = {
   },
   currentUser: null,
   isAdmin: false,
+  userClaudeApiKey: '',
   expenseRows: [],
   expenseChart: null,
   settlementChart: null,
@@ -163,6 +165,7 @@ async function initFinalIntegrations() {
   FinalRuntime.isAdmin = isAdminSessionActive();
 
   initGoogleAuth();
+  initUserApiKeyPanel();
   initNeuralMap();
   initPostits();
   initWorkUtilities();
@@ -193,6 +196,7 @@ async function loadIntegrationConfig() {
     features: {
       slack: false,
       openai: false,
+      anthropic: false,
       googleSheets: false,
       gmail: false,
       railway: location.protocol.startsWith('http')
@@ -241,6 +245,90 @@ function fallbackCopy(text, successTitle) {
   document.execCommand('copy');
   ta.remove();
   showToast(successTitle, '클립보드에 복사되었습니다.', 'success');
+}
+
+/* =============================================
+   User API Key
+============================================== */
+
+const USER_CLAUDE_KEY_SESSION = 'workosUserClaudeApiKey';
+
+function getUserClaudeApiKey() {
+  try {
+    return sessionStorage.getItem(USER_CLAUDE_KEY_SESSION) || '';
+  } catch (error) {
+    return FinalRuntime.userClaudeApiKey || '';
+  }
+}
+
+function setUserClaudeApiKey(value) {
+  const key = String(value || '').trim();
+  FinalRuntime.userClaudeApiKey = key;
+  try {
+    if (key) sessionStorage.setItem(USER_CLAUDE_KEY_SESSION, key);
+    else sessionStorage.removeItem(USER_CLAUDE_KEY_SESSION);
+  } catch (error) {
+    // Session storage may be blocked; keep the key only in memory for this page.
+  }
+}
+
+function updateUserApiKeyStatus() {
+  const status = document.getElementById('user-api-status');
+  const input = document.getElementById('user-claude-api-key');
+  const userKey = getUserClaudeApiKey();
+  if (input && userKey && input.value !== userKey) input.value = userKey;
+  if (!status) return;
+
+  if (userKey) {
+    status.textContent = 'User Claude';
+    status.className = 'user-api-status is-user';
+  } else if (FinalRuntime.config.features.anthropic) {
+    status.textContent = 'Railway';
+    status.className = 'user-api-status is-server';
+  } else {
+    status.textContent = 'Demo';
+    status.className = 'user-api-status';
+  }
+}
+
+function initUserApiKeyPanel() {
+  const input = document.getElementById('user-claude-api-key');
+  const saveBtn = document.getElementById('user-api-save-btn');
+  const clearBtn = document.getElementById('user-api-clear-btn');
+  if (!input || !saveBtn || !clearBtn) return;
+
+  const savedKey = getUserClaudeApiKey();
+  if (savedKey) input.value = savedKey;
+
+  const applyKey = () => {
+    const nextKey = input.value.trim();
+    if (!nextKey) {
+      setUserClaudeApiKey('');
+      updateUserApiKeyStatus();
+      renderIntegrationStatus();
+      showToast('Claude API 키', '사용자 키를 비웠습니다. Railway Claude 키 또는 로컬 응답으로 동작합니다.', 'info');
+      return;
+    }
+
+    setUserClaudeApiKey(nextKey);
+    updateUserApiKeyStatus();
+    renderIntegrationStatus();
+    showToast('Claude API 키 적용', '이 브라우저 세션에서 업무 AI와 AI 변호사에 사용자 Claude 키를 우선 사용합니다.', 'success');
+  };
+
+  saveBtn.addEventListener('click', applyKey);
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') applyKey();
+  });
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    setUserClaudeApiKey('');
+    updateUserApiKeyStatus();
+    renderIntegrationStatus();
+    showToast('Claude API 키 삭제', '브라우저 세션에서 사용자 Claude 키를 삭제했습니다.', 'info');
+  });
+
+  updateUserApiKeyStatus();
 }
 
 /* =============================================
@@ -891,9 +979,15 @@ async function transcribeMeetingAudio() {
     renderMeetingSummary();
     if (status) {
       status.className = result.usedOpenAI ? 'badge badge--success' : 'badge badge--muted';
-      status.textContent = result.usedOpenAI ? 'OpenAI 전사' : '데모 전사';
+      status.textContent = result.usedOpenAI ? 'Railway API 전사' : '데모 전사';
     }
-    showToast('음성 전사 완료', result.usedOpenAI ? 'OpenAI Audio API로 전사했습니다.' : 'API 키 미설정으로 데모 전사를 적용했습니다.', result.usedOpenAI ? 'success' : 'info');
+    showToast(
+      '음성 전사 완료',
+      result.usedOpenAI
+        ? 'Railway OpenAI API 키로 전사했습니다.'
+        : 'API 키 미설정 또는 호출 실패로 데모 전사를 적용했습니다.',
+      result.usedOpenAI ? 'success' : 'info'
+    );
   } catch (error) {
     const transcript = buildFallbackTranscript(file.name);
     document.getElementById('meeting-transcript').value = transcript;
@@ -1555,9 +1649,11 @@ function renderIntegrationStatus() {
   const badge = document.getElementById('api-health-badge');
   if (!grid) return;
 
+  const hasUserClaudeKey = Boolean(getUserClaudeApiKey());
   const cards = [
     ['Google Login', 'GOOGLE_CLIENT_ID', Boolean(FinalRuntime.config.googleClientId), 'Google Identity Services'],
     ['Slack Chat', 'SLACK_WEBHOOK_URL', FinalRuntime.config.features.slack, '팀 채팅 메시지 Webhook 전송'],
+    ['Claude Copilot', hasUserClaudeKey ? 'User Claude Key (session)' : 'ANTHROPIC_API_KEY', FinalRuntime.config.features.anthropic || hasUserClaudeKey, '업무 AI / AI 변호사 응답'],
     ['OpenAI Meeting AI', 'OPENAI_API_KEY', FinalRuntime.config.features.openai, 'Audio transcription / gpt-4o-mini-transcribe'],
     ['Google Sheet Expense', 'GOOGLE_SHEETS_CSV_URL', FinalRuntime.config.features.googleSheets, '공동 경비 CSV 동기화'],
     ['Daily Gmail', 'GMAIL_WEBHOOK_URL', FinalRuntime.config.features.gmail, 'Apps Script 또는 Gmail 발송 Webhook'],

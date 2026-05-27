@@ -152,7 +152,7 @@ function scrollChatToBottom() {
    3. 사용자 입력 처리
 ============================================== */
 
-function handleUserSend() {
+async function handleUserSend() {
   const input = document.getElementById('chat-input');
   if (!input) return;
 
@@ -163,13 +163,123 @@ function handleUserSend() {
   appendUserMessage(text);
   showTypingIndicator();
 
-  // 응답 지연 (typing 효과)
-  const delay = 600 + Math.random() * 600;
-  setTimeout(() => {
+  const minimumDelay = new Promise(resolve => setTimeout(resolve, 450));
+  try {
+    const claudeResult = await requestClaudeChat(text, 'work');
+    await minimumDelay;
     removeTypingIndicator();
-    const { response, evidence } = getBotResponse(text);
-    appendBotMessage(response, evidence);
-  }, delay);
+    if (claudeResult?.usedClaude && claudeResult.text) {
+      appendBotMessage(claudeResult.text, buildClaudeEvidence(claudeResult));
+      return;
+    }
+  } catch (error) {
+    await minimumDelay;
+    removeTypingIndicator();
+  }
+
+  const { response, evidence } = getBotResponse(text);
+  appendBotMessage(response, evidence);
+}
+
+async function requestClaudeChat(message, mode = 'work') {
+  if (!location.protocol.startsWith('http')) return null;
+  if (typeof apiPost !== 'function') return null;
+
+  const userClaudeApiKey = typeof getUserClaudeApiKey === 'function' ? getUserClaudeApiKey() : '';
+  const hasServerClaude = Boolean(window.FinalRuntime?.config?.features?.anthropic);
+  if (!userClaudeApiKey && !hasServerClaude) return null;
+
+  const result = await apiPost('/api/claude/chat', {
+    mode,
+    message,
+    context: buildClaudeDashboardContext(message),
+    ...(userClaudeApiKey ? { userClaudeApiKey } : {})
+  });
+
+  return result?.usedClaude ? result : null;
+}
+
+function buildClaudeEvidence(result) {
+  return buildEvidence({
+    '응답 엔진': result.keySource === 'user' ? 'User Claude API' : 'Railway Claude API',
+    '모델': result.model || 'Claude',
+    'Fallback': 'Rule-based 응답 가능'
+  });
+}
+
+function buildClaudeDashboardContext(message) {
+  const sortedTasks = typeof getSortedTasks === 'function' ? getSortedTasks() : [];
+  const kpiList = typeof getKpisWithStatus === 'function' ? getKpisWithStatus() : [];
+  const projectList = Array.isArray(projects) ? projects : [];
+  const mailList = Array.isArray(mails) ? mails : [];
+  const resourceList = Array.isArray(resources) ? resources : [];
+  const riskList = Array.isArray(risks) ? risks : [];
+  const expenseRows = window.FinalRuntime?.expenseRows?.length ? window.FinalRuntime.expenseRows : [];
+  const repliedMails = typeof AppState !== 'undefined' ? AppState.repliedMails : null;
+
+  return {
+    question: message,
+    date: new Date().toISOString().slice(0, 10),
+    projects: projectList.map(p => ({
+      name: p.name,
+      team: p.team,
+      status: p.status,
+      progress: p.progress,
+      deadline: p.deadline,
+      currentStage: p.currentStage,
+      nextStage: p.nextStage
+    })).slice(0, 8),
+    urgentTasks: sortedTasks
+      .filter(t => !t.isDone)
+      .slice(0, 8)
+      .map(t => ({
+        title: t.title,
+        owner: t.owner,
+        dueDate: t.dueDate,
+        urgency: t.urgency,
+        impact: t.impact,
+        priorityScore: t.priorityScore || (typeof calculatePriority === 'function' ? calculatePriority(t) : undefined),
+        bottleneckScore: t.bottleneckScore
+      })),
+    kpiAlerts: kpiList
+      .filter(k => k.status && k.status !== 'green')
+      .map(k => ({
+        name: k.name,
+        current: k.current,
+        target: k.target,
+        unit: k.unit,
+        status: k.status,
+        aiSuggestion: k.aiSuggestion
+      })),
+    urgentMails: mailList
+      .filter(m => m.unread && m.priority === 'high' && !repliedMails?.has(m.id))
+      .map(m => ({
+        subject: m.subject,
+        from: m.fromName || m.from,
+        slaHoursLeft: m.slaHoursLeft,
+        summary: m.summary
+      }))
+      .slice(0, 5),
+    resourceLoad: resourceList
+      .map(r => ({
+        name: r.name,
+        load: r.load,
+        activeTasks: r.activeTasks,
+        urgentTasks: r.urgentTasks,
+        aiNote: r.aiNote
+      }))
+      .slice(0, 8),
+    topRisks: riskList
+      .map(r => ({
+        title: r.title,
+        category: r.category,
+        severity: r.severity,
+        detail: r.detail,
+        bottleneckScore: r.bottleneckScore
+      }))
+      .slice(0, 6),
+    expenseSample: expenseRows.slice(0, 8)
+  };
 }
 
 /* =============================================
