@@ -162,7 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initFinalIntegrations() {
   FinalRuntime.config = await loadIntegrationConfig();
-  FinalRuntime.currentUser = loadFromLocalStorage('currentUser') || null;
+  const _savedUser = loadFromLocalStorage('currentUser');
+  // 데모 유저는 복원하지 않음 — 항상 실제 Google 로그인 요구
+  FinalRuntime.currentUser = (_savedUser && _savedUser.provider !== 'google-demo') ? _savedUser : null;
   FinalRuntime.isAdmin = isAdminSessionActive();
 
   initGoogleAuth();
