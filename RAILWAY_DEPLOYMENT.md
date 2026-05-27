@@ -22,6 +22,18 @@ GOOGLE_SHEETS_CSV_URL=
 GMAIL_WEBHOOK_URL=
 ```
 
+## 샘플 데이터 파일
+
+공유 드라이브 업로드용 샘플 파일은 `sample-data/`에 있습니다.
+
+- `sample-data/workos_shared_expenses.xlsx`: Google Drive에 업로드할 원본 엑셀 파일
+- `sample-data/workos_shared_expenses.csv`: Shared Expense Dashboard가 바로 읽을 수 있는 CSV
+- `sample-data/workos_team_members.csv`: 관리자/팀원 시연 데이터
+- `sample-data/workos_calendar_events.csv`: 캘린더 시연 데이터
+- `sample-data/workos_daily_summary_payload.json`: Gmail Webhook 테스트 payload
+
+Google Sheets로 실제 연동하려면 `workos_shared_expenses.xlsx`를 Google Drive에 업로드한 뒤 `Shared_Expenses` 탭을 CSV로 웹에 게시하고, 그 공개 CSV URL을 Railway의 `GOOGLE_SHEETS_CSV_URL`에 넣습니다. 이 값이 없어도 `/api/google-sheet`는 서버 내장 샘플 데이터를 반환하므로 처음 접속한 사용자도 빈 화면을 보지 않습니다.
+
 ## 제출
 
 1. `workOS` 폴더를 GitHub 저장소에 업로드합니다.

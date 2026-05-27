@@ -1,0 +1,11 @@
+id,name,role,team,status,email,board_access
+admin,사지윤,Ops Manager,PMO,online,sajiyun@example.com,admin
+soyeon,김소연,Frontend Lead,Frontend,online,soyeon@example.com,projects;kpi;meeting
+jaehoon,박재훈,Data Engineer,Data,busy,jaehoon@example.com,projects;expenses;meeting
+minjun,이민준,Security Lead,Security,online,minjun@example.com,risk;admin-review
+backend,Backend Lead,API Owner,Backend,busy,backend@example.com,projects;risk
+qa,QA Manager,Quality Owner,QA,online,qa@example.com,tasks;risk;meeting
+devops,DevOps Lead,Release Owner,DevOps,busy,devops@example.com,admin;integrations;risk
+cs,CS Manager,SLA Owner,CS,away,cs@example.com,comms;calendar
+finance,Finance Keeper,Expense Owner,Finance,online,finance@example.com,expenses;kpi;settlement
+hr,HR Partner,People Ops,HR,online,hr@example.com,postits;calendar

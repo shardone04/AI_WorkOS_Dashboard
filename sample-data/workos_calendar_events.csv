@@ -1,0 +1,9 @@
+id,date,time,type,title,owner,participants,location,status
+1001,2026-05-27,09:30,meeting,최종 제출 대시보드 점검,사지윤,"PMO;Frontend;DevOps",온라인,confirmed
+1002,2026-05-27,13:00,deadline,Railway 환경변수 확인,DevOps Lead,"PMO;DevOps",Railway,open
+1003,2026-05-28,10:00,meeting,공동 경비 Google Sheet 검수,Finance Keeper,"Finance;PMO",회의실 A,confirmed
+1004,2026-05-28,15:30,deploy,GitHub main 브랜치 배포,DevOps Lead,"Backend;QA;DevOps",Railway,planned
+1005,2026-05-29,11:00,meeting,Meeting AI 전사 품질 리뷰,김소연,"Frontend;QA;PMO",회의실 B,confirmed
+1006,2026-05-29,17:00,deadline,일일 결산 Gmail Webhook 테스트,Finance Keeper,"Finance;PMO",Gmail Apps Script,open
+1007,2026-06-01,09:20,meeting,주간 KPI 회고,사지윤,"PMO;Finance;CS",온라인,confirmed
+1008,2026-06-02,14:00,meeting,관리자 권한 공개 범위 시연,사지윤,"PMO;HR;DevOps",회의실 A,planned

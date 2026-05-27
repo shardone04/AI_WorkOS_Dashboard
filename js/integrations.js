@@ -130,7 +130,17 @@ const sampleExpenses = [
   { date: '2026-05-23', category: '교통', item: '고객사 방문 택시', amount: 42000, owner: 'CS Manager', method: '개인정산' },
   { date: '2026-05-24', category: '클라우드', item: '테스트 서버 증설', amount: 360000, owner: 'DevOps Lead', method: '법인카드' },
   { date: '2026-05-25', category: '식비', item: '배포 야근 식대', amount: 214000, owner: 'Backend Lead', method: '공동경비' },
-  { date: '2026-05-26', category: '소모품', item: '회의실 케이블 세트', amount: 58000, owner: '박재훈', method: '공동경비' }
+  { date: '2026-05-26', category: '소모품', item: '회의실 케이블 세트', amount: 58000, owner: '박재훈', method: '공동경비' },
+  { date: '2026-05-27', category: '교육', item: '데이터 시각화 워크숍', amount: 240000, owner: '사지윤', method: '법인카드' },
+  { date: '2026-05-27', category: '식비', item: 'PMO 데일리 스탠드업 간식', amount: 48000, owner: '김소연', method: '공동경비' },
+  { date: '2026-05-28', category: '클라우드', item: 'Railway 테스트 크레딧', amount: 72000, owner: 'DevOps Lead', method: '법인카드' },
+  { date: '2026-05-28', category: '소모품', item: '회의실 HDMI 허브', amount: 39000, owner: '박재훈', method: '공동경비' },
+  { date: '2026-05-29', category: '교통', item: '외부 미팅 왕복 택시', amount: 56000, owner: 'CS Manager', method: '개인정산' },
+  { date: '2026-05-30', category: '자격', item: '개인정보보호 교육 수료증', amount: 120000, owner: '이민준', method: '계좌이체' },
+  { date: '2026-05-31', category: '식비', item: '월말 결산 회의 식대', amount: 176000, owner: 'Finance Keeper', method: '공동경비' },
+  { date: '2026-06-01', category: '교육', item: 'OpenAI API 실습 세션', amount: 210000, owner: '김소연', method: '법인카드' },
+  { date: '2026-06-01', category: '클라우드', item: '로그 저장소 증설', amount: 94000, owner: 'Backend Lead', method: '법인카드' },
+  { date: '2026-06-02', category: '소모품', item: '포스트잇 및 라벨지', amount: 31000, owner: 'HR Partner', method: '공동경비' }
 ];
 
 const lunchOptions = [
