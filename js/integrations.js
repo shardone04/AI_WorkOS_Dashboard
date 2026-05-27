@@ -412,60 +412,72 @@ function initMeetingOpenAiKeyPanel() {
    Google Login
 ============================================== */
 
-function waitForGoogle(cb, tries = 0) {
-  if (window.google?.accounts?.oauth2) { cb(); return; }
-  if (tries > 20) return; // 2초 대기 후 포기
-  setTimeout(() => waitForGoogle(cb, tries + 1), 100);
-}
 
-function triggerGoogleLogin() {
-  const clientId = FinalRuntime.config.googleClientId;
-  if (!clientId) {
-    showToast('Google 로그인', 'GOOGLE_CLIENT_ID가 설정되지 않았습니다. Railway Variables를 확인하세요.', 'error', 4000);
-    return;
-  }
-  if (!window.google?.accounts?.oauth2) {
-    showToast('Google 로그인', 'Google 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.', 'warning', 2500);
-    return;
-  }
-  const tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
-    scope: 'openid email profile',
-    callback: async (tokenResponse) => {
-      if (tokenResponse.error) {
-        showToast('Google 로그인 실패', tokenResponse.error_description || tokenResponse.error, 'error');
-        return;
-      }
-      try {
-        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-        });
-        if (!res.ok) throw new Error('userinfo_failed');
-        const profile = await res.json();
-        FinalRuntime.currentUser = {
-          name: profile.name || profile.email || 'Google User',
-          email: profile.email || '',
-          picture: profile.picture || '',
-          provider: 'google'
-        };
-        saveToLocalStorage('currentUser', FinalRuntime.currentUser);
-        updateHeaderIdentity();
-        showToast('Google 로그인 완료', `${FinalRuntime.currentUser.name} 계정으로 접속했습니다.`, 'success');
-      } catch (err) {
-        showToast('Google 로그인 실패', '사용자 정보를 가져오지 못했습니다.', 'error');
-      }
-    }
-  });
-  tokenClient.requestAccessToken();
+
+function waitForGoogle(cb, tries = 0) {
+  if (window.google?.accounts?.id) { cb(); return; }
+  if (tries > 30) return;
+  setTimeout(() => waitForGoogle(cb, tries + 1), 100);
 }
 
 function initGoogleAuth() {
   const btn = document.getElementById('google-auth-btn');
   if (!btn) return;
-  btn.addEventListener('click', () => waitForGoogle(triggerGoogleLogin));
-  // 시작 시 이미 저장된 유저 복원
+
+  btn.addEventListener('click', () => {
+    const clientId = FinalRuntime.config.googleClientId;
+    if (!clientId) {
+      showToast('Google 로그인', 'GOOGLE_CLIENT_ID가 설정되지 않았습니다. Railway Variables를 확인하세요.', 'error', 4000);
+      return;
+    }
+    waitForGoogle(() => {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: onGoogleSignIn,
+        auto_select: false,
+        cancel_on_tap_outside: true
+      });
+      google.accounts.id.prompt(notification => {
+        // One Tap 차단 시 OAuth2 팝업 폴백
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          if (!window.google?.accounts?.oauth2) return;
+          google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: 'openid email profile',
+            callback: async resp => {
+              if (resp.error) { showToast('Google 로그인 실패', resp.error, 'error'); return; }
+              try {
+                const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${resp.access_token}` }
+                });
+                const p = await r.json();
+                onGoogleSignIn({ _direct: true, name: p.name, email: p.email, picture: p.picture });
+              } catch { showToast('Google 로그인 실패', '사용자 정보 오류', 'error'); }
+            }
+          }).requestAccessToken();
+        }
+      });
+    });
+  });
+
   updateHeaderIdentity();
 }
+
+function onGoogleSignIn(response) {
+  let name, email, picture;
+  if (response._direct) {
+    name = response.name; email = response.email; picture = response.picture || '';
+  } else {
+    const p = decodeJwt(response.credential);
+    name = p.name || p.email; email = p.email || ''; picture = p.picture || '';
+  }
+  FinalRuntime.currentUser = { name, email, picture, provider: 'google' };
+  saveToLocalStorage('currentUser', FinalRuntime.currentUser);
+  updateHeaderIdentity();
+  showToast('Google 로그인 완료', `${name} 계정으로 접속했습니다.`, 'success');
+}
+
+
 
 // Legacy One-Tap credential handler (kept for compatibility)
 function handleGoogleCredential(response) {
