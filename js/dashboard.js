@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initUserProfile();
   initCommandPalette();
   initNavScroll();
+  initScrollHint();
   initModalClose();
   initNotifBtn();
   updateOrgBadge();
@@ -882,6 +883,7 @@ function initCopilotToggle() {
     btn.textContent = collapsed ? '▶' : '◀';
     if (reopenTab) reopenTab.style.display = collapsed ? 'flex' : 'none';
     AppState.copilotCollapsed = collapsed;
+    window.requestAnimationFrame(updateScrollHint);
   }
 
   btn.addEventListener('click', () => setCollapsed(!panel.classList.contains('collapsed')));
@@ -1138,6 +1140,9 @@ function showDashboardPage(pageKey = 'briefing', options = {}) {
     const hash = `#page-${pageKey}`;
     if (window.location.hash !== hash) history.replaceState(null, '', hash);
   }
+
+  window.requestAnimationFrame(updateScrollHint);
+  window.setTimeout(updateScrollHint, options.instant ? 80 : 420);
 }
 
 function scrollToSection(sectionId) {
@@ -1145,6 +1150,36 @@ function scrollToSection(sectionId) {
   if (!el) return;
   const pageKey = getPageKeyForSection(sectionId);
   showDashboardPage(pageKey);
+}
+
+function updateScrollHint() {
+  const main = document.getElementById('main-content');
+  const hint = document.getElementById('scroll-hint');
+  if (!main || !hint) return;
+
+  const remainingScroll = main.scrollHeight - main.clientHeight - main.scrollTop;
+  const isScrollable = main.scrollHeight - main.clientHeight > 80;
+  const shouldShow = isScrollable && remainingScroll > 64;
+  hint.classList.toggle('is-visible', shouldShow);
+  hint.setAttribute('aria-hidden', String(!shouldShow));
+}
+
+function initScrollHint() {
+  const main = document.getElementById('main-content');
+  const hint = document.getElementById('scroll-hint');
+  if (!main || !hint) return;
+
+  hint.addEventListener('click', () => {
+    main.scrollBy({ top: Math.max(260, main.clientHeight * 0.72), behavior: 'smooth' });
+    window.setTimeout(updateScrollHint, 420);
+  });
+
+  main.addEventListener('scroll', updateScrollHint, { passive: true });
+  window.addEventListener('resize', () => window.requestAnimationFrame(updateScrollHint));
+  new MutationObserver(() => window.requestAnimationFrame(updateScrollHint))
+    .observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'aria-hidden'] });
+
+  updateScrollHint();
 }
 
 function initNavScroll() {
