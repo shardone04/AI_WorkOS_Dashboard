@@ -427,6 +427,17 @@ function initGoogleAuth() {
   const btn = document.getElementById('google-auth-btn');
   if (!btn) return;
   btn.addEventListener('click', () => waitForGoogle(doGoogleOAuth));
+
+  // 로그아웃 버튼
+  document.getElementById('logout-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    FinalRuntime.currentUser = null;
+    try { sessionStorage.removeItem('workosMeetingOpenAiApiKey'); } catch(_) {}
+    saveToLocalStorage('currentUser', null);
+    updateHeaderIdentity();
+    showToast('로그아웃', 'Google 계정에서 로그아웃했습니다.', 'info');
+  });
+
   updateHeaderIdentity();
 }
 
