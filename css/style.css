@@ -8036,7 +8036,7 @@ html[data-theme="light"] .knowledge-chip {
   background: #f8f9fa;
   box-shadow: 0 1px 4px rgba(60,64,67,.3);
 }
-.google-signin-btn.google-auth-hidden { display: none !important; }
+.google-auth-hidden { display: none !important; }
 html[data-theme="dark"] .google-signin-btn {
   background: #3c4043;
   color: #e8eaed;
