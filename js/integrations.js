@@ -499,8 +499,8 @@ function updateHeaderIdentity() {
 
   if (user) {
     // ── 로그인 완료: 버튼 숨기고 프로필 표시 ──
-    if (googleBtn)   googleBtn.style.display   = 'none';
-    if (profileArea) profileArea.style.display = 'flex';
+    if (googleBtn)   { googleBtn.style.display = 'none'; googleBtn.classList.add('google-auth-hidden'); }
+    if (profileArea) { profileArea.style.display = 'flex'; profileArea.classList.remove('google-auth-hidden'); }
     const avatar = profileArea?.querySelector('.avatar');
     const name   = profileArea?.querySelector('.user-name');
     const role   = profileArea?.querySelector('.user-role');
