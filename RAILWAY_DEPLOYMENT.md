@@ -32,12 +32,14 @@ GMAIL_WEBHOOK_URL=
 - `GOOGLE_CLIENT_ID` 공란: Google Demo User 로그인으로 동작
 - `ADMIN_PASSCODE` 공란: 기본 관리자 비밀번호 `ADMIN-2026` 사용
 - `ANTHROPIC_API_KEY` 공란: 업무 AI/AI 변호사는 로컬 규칙 기반 응답 사용. 사용자가 우측 `AI Copilot` 상단에 자신의 Claude API 키를 직접 입력할 수도 있음
-- `OPENAI_API_KEY` 공란: Meeting Audio AI는 실제 전사 대신 데모 전사 사용
+- `OPENAI_API_KEY` 공란: Meeting Audio AI는 실제 전사 대신 데모 전사 사용. 사용자가 Meeting Audio AI 카드의 `OpenAI Transcribe` 입력칸에 자신의 OpenAI 키를 직접 넣으면 실제 전사 가능
 - `SLACK_WEBHOOK_URL` 공란: Slack 전송 대신 로컬 팀 채팅/데모 상태로 동작
 - `GOOGLE_SHEETS_CSV_URL` 공란: 서버 내장 공동 경비 샘플 데이터 사용
 - `GMAIL_WEBHOOK_URL` 공란: 일일 결산 미리보기/복사는 가능, 실제 메일 발송만 비활성
 
 사용자가 자신의 Claude API 키를 쓰고 싶다면 우측 `AI Copilot` 상단의 `Claude API` 입력칸에 직접 넣을 수 있습니다. 이 값은 GitHub나 Railway 환경변수에 저장되지 않고, 해당 브라우저 세션에서 업무 AI/AI 변호사 요청을 보낼 때만 서버로 전달됩니다.
+
+회의 음성 전사는 Claude 키가 아니라 OpenAI 음성 전사 키를 사용합니다. Railway에 `OPENAI_API_KEY`를 넣지 않는 경우에도 사용자가 Meeting Audio AI 카드에서 `OpenAI Transcribe` 키를 입력하면 해당 브라우저 세션에서만 실제 전사를 실행합니다.
 
 ## 샘플 데이터 파일
 

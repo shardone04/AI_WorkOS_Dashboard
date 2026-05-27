@@ -675,6 +675,17 @@
         </div>
         <div class="meeting-ai-layout">
           <div class="meeting-ai-uploader card glass">
+            <div class="meeting-openai-panel user-api-panel" aria-label="Meeting Audio OpenAI API 키">
+              <div class="user-api-panel-top">
+                <span>OpenAI Transcribe</span>
+                <span id="meeting-openai-status" class="user-api-status">Demo</span>
+              </div>
+              <div class="user-api-row">
+                <input id="meeting-openai-api-key" class="user-api-input" type="password" placeholder="OpenAI 키 입력" autocomplete="off" spellcheck="false" />
+                <button id="meeting-openai-save-btn" class="user-api-btn" type="button">적용</button>
+                <button id="meeting-openai-clear-btn" class="user-api-clear" type="button" aria-label="Meeting Audio OpenAI API 키 삭제">×</button>
+              </div>
+            </div>
             <input id="meeting-audio-file" class="form-input" type="file" accept=".mp3,.m4a,.mp4,.wav,.webm,audio/mp3,audio/mpeg,audio/mp4,audio/m4a,audio/x-m4a,audio/wav,audio/webm" />
             <button id="meeting-transcribe-btn" class="btn btn--primary">음성 전사</button>
             <textarea id="meeting-transcript" class="form-input meeting-textarea" placeholder="전사된 회의 내용이 표시됩니다"></textarea>
@@ -964,7 +975,7 @@
 <script src="js/presentation.js"></script>
 <script src="js/lawyer.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="js/integrations.js?v=20260527-claude-api-key"></script>
+<script src="js/integrations.js?v=20260527-meeting-openai-key"></script>
 
 </body>
 </html>

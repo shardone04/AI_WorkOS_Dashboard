@@ -171,8 +171,9 @@ async function handleApi(req, res, url) {
 
   if (req.method === 'POST' && url.pathname === '/api/transcribe') {
     const body = await readJson(req, 28 * 1024 * 1024);
-    const apiKey = process.env.OPENAI_API_KEY;
-    const keySource = process.env.OPENAI_API_KEY ? 'railway' : 'demo';
+    const userApiKey = typeof body.userOpenAiApiKey === 'string' ? body.userOpenAiApiKey.trim() : '';
+    const apiKey = userApiKey || process.env.OPENAI_API_KEY;
+    const keySource = userApiKey ? 'user' : process.env.OPENAI_API_KEY ? 'railway' : 'demo';
     if (!apiKey || !body.audioBase64) {
       sendJson(res, 200, { usedOpenAI: false, keySource: 'demo', text: fallbackTranscript(body.fileName) });
       return;
