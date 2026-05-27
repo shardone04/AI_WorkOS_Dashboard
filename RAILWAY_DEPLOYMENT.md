@@ -10,17 +10,28 @@ Railway는 Node 프로젝트의 `package.json`을 감지하고 `start` 스크립
 
 ## Railway Variables
 
-필수는 아니지만, 아래 값을 넣으면 관련 기능이 실제 연동됩니다.
+Railway에서 반드시 넣을 값은 `OPENAI_API_KEY` 하나입니다. 이 값이 있으면 Meeting Audio AI가 실제 OpenAI 전사를 사용합니다. 비워도 앱 자체는 실행되고 데모 전사로 동작하지만, 최종 제출에서는 실제 AI 연동을 보여주기 위해 입력하는 것을 권장합니다.
+
+```env
+OPENAI_API_KEY=
+OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
+```
+
+아래 값들은 선택입니다. 공란이면 대시보드가 기본/임의 설정으로 자동 동작합니다.
 
 ```env
 GOOGLE_CLIENT_ID=
 ADMIN_PASSCODE=
 SLACK_WEBHOOK_URL=
-OPENAI_API_KEY=
-OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
 GOOGLE_SHEETS_CSV_URL=
 GMAIL_WEBHOOK_URL=
 ```
+
+- `GOOGLE_CLIENT_ID` 공란: Google Demo User 로그인으로 동작
+- `ADMIN_PASSCODE` 공란: 기본 관리자 비밀번호 `ADMIN-2026` 사용
+- `SLACK_WEBHOOK_URL` 공란: Slack 전송 대신 로컬 팀 채팅/데모 상태로 동작
+- `GOOGLE_SHEETS_CSV_URL` 공란: 서버 내장 공동 경비 샘플 데이터 사용
+- `GMAIL_WEBHOOK_URL` 공란: 일일 결산 미리보기/복사는 가능, 실제 메일 발송만 비활성
 
 ## 샘플 데이터 파일
 
