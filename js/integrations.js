@@ -427,28 +427,60 @@ function initGoogleAuth() {
   if (!btn) return;
 
   btn.addEventListener('click', () => {
-    if (FinalRuntime.config.googleClientId && window.google?.accounts?.id) {
-      window.google.accounts.id.initialize({
-        client_id: FinalRuntime.config.googleClientId,
-        callback: handleGoogleCredential
-      });
-      window.google.accounts.id.prompt();
-      showToast('Google 로그인', 'Google 계정 선택 창을 열었습니다.', 'info', 2200);
+    const clientId = FinalRuntime.config.googleClientId;
+
+    if (!clientId || !window.google?.accounts?.oauth2) {
+      // Demo fallback — no GOOGLE_CLIENT_ID configured
+      FinalRuntime.currentUser = {
+        name: 'Google Demo User',
+        email: 'demo.user@company.com',
+        picture: '',
+        provider: 'google-demo'
+      };
+      saveToLocalStorage('currentUser', FinalRuntime.currentUser);
+      updateHeaderIdentity();
+      showToast('Google 데모 로그인', 'GOOGLE_CLIENT_ID 환경변수를 설정하면 실제 Google 로그인이 활성화됩니다.', 'info', 3200);
       return;
     }
 
-    FinalRuntime.currentUser = {
-      name: 'Google Demo User',
-      email: 'demo.user@company.com',
-      picture: '',
-      provider: 'google-demo'
-    };
-    saveToLocalStorage('currentUser', FinalRuntime.currentUser);
-    updateHeaderIdentity();
-    showToast('Google 데모 로그인', 'GOOGLE_CLIENT_ID 환경변수를 넣으면 실제 Google 로그인이 활성화됩니다.', 'info', 3200);
+    // OAuth2 popup — reliable for user-triggered button clicks
+    try {
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'openid email profile',
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error) {
+            showToast('Google 로그인 실패', tokenResponse.error_description || tokenResponse.error, 'error');
+            return;
+          }
+          try {
+            const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+            });
+            if (!res.ok) throw new Error('userinfo_failed');
+            const profile = await res.json();
+            FinalRuntime.currentUser = {
+              name: profile.name || profile.email || 'Google User',
+              email: profile.email || '',
+              picture: profile.picture || '',
+              provider: 'google'
+            };
+            saveToLocalStorage('currentUser', FinalRuntime.currentUser);
+            updateHeaderIdentity();
+            showToast('Google 로그인 완료', `${FinalRuntime.currentUser.name} 계정으로 접속했습니다.`, 'success');
+          } catch (err) {
+            showToast('Google 로그인 실패', '사용자 정보를 가져오지 못했습니다.', 'error');
+          }
+        }
+      });
+      tokenClient.requestAccessToken({ prompt: 'select_account' });
+    } catch (err) {
+      showToast('Google 로그인 오류', 'Google 라이브러리가 아직 로딩 중입니다. 잠시 후 다시 시도하세요.', 'error');
+    }
   });
 }
 
+// Legacy One-Tap credential handler (kept for compatibility)
 function handleGoogleCredential(response) {
   const profile = decodeJwt(response.credential);
   FinalRuntime.currentUser = {
