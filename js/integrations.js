@@ -456,7 +456,7 @@ function triggerGoogleLogin() {
       }
     }
   });
-  tokenClient.requestAccessToken({ prompt: 'select_account' });
+  tokenClient.requestAccessToken();
 }
 
 function initGoogleAuth() {
@@ -493,27 +493,28 @@ function decodeJwt(token) {
 }
 
 function updateHeaderIdentity() {
-  const user = FinalRuntime.currentUser;
-  const googleBtn = document.getElementById('google-auth-btn');
+  const user        = FinalRuntime.currentUser;
+  const googleBtn   = document.getElementById('google-auth-btn');
   const profileArea = document.getElementById('user-profile-btn');
 
   if (user) {
-    // 로그인 완료 → 버튼 숨기고 프로필 표시
-    const initials = (user.name || user.email || 'GU').slice(0, 2).toUpperCase();
+    // ── 로그인 완료: 버튼 숨기고 프로필 표시 ──
+    if (googleBtn)   googleBtn.style.display   = 'none';
+    if (profileArea) profileArea.style.display = 'flex';
     const avatar = profileArea?.querySelector('.avatar');
     const name   = profileArea?.querySelector('.user-name');
     const role   = profileArea?.querySelector('.user-role');
+    const initials = (user.name || user.email || 'GU').slice(0, 2).toUpperCase();
     if (avatar) avatar.textContent = initials;
     if (name)   name.textContent   = user.name || user.email;
-    if (role)   role.textContent   = user.provider === 'google' ? 'Google Verified' : user.role || 'Ops Manager';
-    if (googleBtn)   { googleBtn.classList.add('google-auth-hidden');    googleBtn.setAttribute('aria-hidden','true');  googleBtn.tabIndex = -1; }
-    if (profileArea) { profileArea.classList.remove('google-auth-hidden'); profileArea.setAttribute('aria-hidden','false'); }
+    if (role)   role.textContent   = user.provider === 'google' ? 'Google Verified' : 'Ops Manager';
   } else {
-    // 미로그인 → 버튼 표시, 프로필 숨기기
-    if (googleBtn)   { googleBtn.classList.remove('google-auth-hidden');  googleBtn.setAttribute('aria-hidden','false'); googleBtn.tabIndex = 0; }
-    if (profileArea) { profileArea.classList.add('google-auth-hidden');   profileArea.setAttribute('aria-hidden','true'); }
+    // ── 미로그인: 버튼 표시, 프로필 숨기기 ──
+    if (googleBtn)   googleBtn.style.display   = '';
+    if (profileArea) profileArea.style.display = 'none';
   }
 }
+
 
 /* =============================================
    Neural Map
