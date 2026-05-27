@@ -521,8 +521,8 @@ function updateHeaderIdentity() {
     if (role)   role.textContent   = user.provider === 'google' ? 'Google Verified' : 'Ops Manager';
   } else {
     // ── 미로그인: 버튼 표시, 프로필 숨기기 ──
-    if (googleBtn)   googleBtn.style.display   = '';
-    if (profileArea) profileArea.style.display = 'none';
+    if (googleBtn)   { googleBtn.style.display = ''; googleBtn.classList.remove('google-auth-hidden'); }
+    if (profileArea) { profileArea.style.display = 'none'; profileArea.classList.add('google-auth-hidden'); }
   }
 }
 
