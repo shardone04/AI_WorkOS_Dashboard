@@ -837,6 +837,7 @@ function initWorkUtilities() {
   });
 
   document.getElementById('lunch-pick-btn')?.addEventListener('click', renderLunchRecommendation);
+  updateLunchApiStatus();
   renderLunchRecommendation();
 }
 
@@ -901,29 +902,82 @@ function updateHealingVolume() {
   }
 }
 
-function renderLunchRecommendation() {
+function updateLunchApiStatus() {
+  const status = document.getElementById('lunch-api-status');
+  if (!status) return;
+  const hasKey = Boolean(getUserClaudeApiKey()) || FinalRuntime.config.features.anthropic;
+  status.textContent = hasKey ? 'Claude AI' : 'Demo';
+  status.className = hasKey ? 'user-api-status active' : 'user-api-status';
+}
+
+async function renderLunchRecommendation() {
   const category = document.getElementById('lunch-category')?.value || '중식';
-  const location = document.getElementById('lunch-location')?.value || '동대문구';
+  const location = document.getElementById('lunch-location')?.value || '동대문구 외대앞';
   const result = document.getElementById('lunch-result');
+  const btn = document.getElementById('lunch-pick-btn');
   if (!result) return;
 
-  const picks = lunchOptions.filter(x => x.category === category).slice(0, 3);
-  result.innerHTML = picks.map((p, idx) => {
-    const text = `[점심 추천] ${location} 기준 2km 이내 ${category}: ${p.name} (${p.distance}) - ${p.note}`;
-    return `
-      <div class="lunch-card">
-        <div>
-          <div class="lunch-card-title">${idx + 1}. ${escHtml(p.name)}</div>
-          <div class="lunch-card-meta">${escHtml(p.distance)} · ${escHtml(p.note)}</div>
-        </div>
-        <button class="btn btn--ghost btn--sm" data-lunch-copy="${escHtml(text)}">복사</button>
-      </div>
-    `;
-  }).join('');
+  result.innerHTML = '<div style="padding:8px;opacity:0.6;font-size:0.8rem;">Claude AI 추천 중…</div>';
+  if (btn) btn.disabled = true;
 
-  result.querySelectorAll('[data-lunch-copy]').forEach(btn => {
-    btn.addEventListener('click', () => copyText(btn.dataset.lunchCopy, '점심 추천 복사'));
-  });
+  try {
+    const res = await fetch('/api/claude/lunch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userClaudeApiKey: getUserClaudeApiKey(),
+        location,
+        category
+      })
+    });
+    const data = await res.json();
+    const places = Array.isArray(data.places) ? data.places : [];
+    const source = data.usedClaude ? 'Claude AI' : 'Demo';
+
+    updateLunchApiStatus();
+
+    if (!places.length) {
+      result.innerHTML = '<div style="padding:8px;opacity:0.6;font-size:0.8rem;">추천 결과를 가져오지 못했습니다.</div>';
+      return;
+    }
+
+    result.innerHTML = places.map((p, idx) => {
+      const text = `[점심 추천] ${location} ${category}: ${p.name} (${p.distance}) - ${p.note}`;
+      return `
+        <div class="lunch-card">
+          <div>
+            <div class="lunch-card-title">${idx + 1}. ${escHtml(p.name)}</div>
+            <div class="lunch-card-meta">${escHtml(p.distance)} · ${escHtml(p.note)}</div>
+          </div>
+          <button class="btn btn--ghost btn--sm" data-lunch-copy="${escHtml(text)}">복사</button>
+        </div>
+      `;
+    }).join('') + `<div style="font-size:0.7rem;opacity:0.5;margin-top:4px;text-align:right;">via ${source}</div>`;
+
+    result.querySelectorAll('[data-lunch-copy]').forEach(b => {
+      b.addEventListener('click', () => copyText(b.dataset.lunchCopy, '점심 추천 복사'));
+    });
+  } catch (error) {
+    const picks = lunchOptions.filter(x => x.category === category).slice(0, 3);
+    result.innerHTML = picks.map((p, idx) => {
+      const text = `[점심 추천] ${location} ${category}: ${p.name} (${p.distance}) - ${p.note}`;
+      return `
+        <div class="lunch-card">
+          <div>
+            <div class="lunch-card-title">${idx + 1}. ${escHtml(p.name)}</div>
+            <div class="lunch-card-meta">${escHtml(p.distance)} · ${escHtml(p.note)}</div>
+          </div>
+          <button class="btn btn--ghost btn--sm" data-lunch-copy="${escHtml(text)}">복사</button>
+        </div>
+      `;
+    }).join('') + '<div style="font-size:0.7rem;opacity:0.5;margin-top:4px;text-align:right;">via Demo</div>';
+
+    result.querySelectorAll('[data-lunch-copy]').forEach(b => {
+      b.addEventListener('click', () => copyText(b.dataset.lunchCopy, '점심 추천 복사'));
+    });
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 /* =============================================

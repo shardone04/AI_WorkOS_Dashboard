@@ -26,6 +26,16 @@ const sampleExpenses = [
   { date: '2026-06-02', category: '소모품', item: '포스트잇 및 라벨지', amount: 31000, owner: 'HR Partner', method: '공동경비' }
 ];
 
+const sampleLunchOptions = [
+  { category: '중식', name: '홍콩반점 외대점', distance: '0.4km', note: '짜장/짬뽕 빠른 회전', source: 'demo' },
+  { category: '중식', name: '동문 중화요리', distance: '0.8km', note: '탕수육 세트 공유 가능', source: 'demo' },
+  { category: '중식', name: '샹하이반점 회기', distance: '1.4km', note: '회의 후 이동 동선 적당', source: 'demo' },
+  { category: '한식', name: '외대앞 순두부', distance: '0.3km', note: '가성비 점심', source: 'demo' },
+  { category: '한식', name: '회기 제육상회', distance: '1.1km', note: '10명 단체석 가능', source: 'demo' },
+  { category: '일식', name: '스시하루 외대', distance: '0.7km', note: '조용한 미팅 식사', source: 'demo' },
+  { category: '분식', name: '문방구 떡볶이', distance: '0.2km', note: '빠른 점심', source: 'demo' }
+];
+
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -74,6 +84,7 @@ async function handleApi(req, res, url) {
         openai: Boolean(process.env.OPENAI_API_KEY),
         anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
         googleSheets: Boolean(process.env.GOOGLE_SHEETS_CSV_URL),
+        kakaoLocal: Boolean(process.env.KAKAO_REST_API_KEY),
         gmail: Boolean(process.env.GMAIL_WEBHOOK_URL),
         railway: Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.PORT)
       }
@@ -121,6 +132,86 @@ async function handleApi(req, res, url) {
       sendJson(res, 200, { live: true, rows: parseCsv(csv) });
     } catch (error) {
       sendJson(res, 200, { live: false, rows: sampleExpenses });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/lunch-recommendations') {
+    const body = await readJson(req);
+    const userApiKey = typeof body.userKakaoRestApiKey === 'string' ? body.userKakaoRestApiKey.trim() : '';
+    const apiKey = userApiKey || process.env.KAKAO_REST_API_KEY;
+    const keySource = userApiKey ? 'user' : process.env.KAKAO_REST_API_KEY ? 'railway' : 'demo';
+    const location = String(body.location || '동대문구 외대앞').trim();
+    const category = String(body.category || '중식').trim();
+
+    if (!apiKey) {
+      sendJson(res, 200, { live: false, keySource: 'demo', places: fallbackLunchPlaces(category) });
+      return;
+    }
+
+    try {
+      const places = await fetchKakaoLunchPlaces({ apiKey, location, category });
+      sendJson(res, 200, {
+        live: places.length > 0,
+        keySource: places.length > 0 ? keySource : 'demo',
+        places: places.length > 0 ? places : fallbackLunchPlaces(category)
+      });
+    } catch (error) {
+      sendJson(res, 200, { live: false, keySource: 'demo', places: fallbackLunchPlaces(category) });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/claude/lunch') {
+    const body = await readJson(req);
+    const userApiKey = typeof body.userClaudeApiKey === 'string' ? body.userClaudeApiKey.trim() : '';
+    const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
+    const keySource = userApiKey ? 'user' : process.env.ANTHROPIC_API_KEY ? 'railway' : 'demo';
+
+    if (!apiKey) {
+      sendJson(res, 200, { usedClaude: false, keySource: 'demo', places: fallbackLunchPlaces(String(body.category || '중식')) });
+      return;
+    }
+
+    const location = String(body.location || '동대문구 외대앞').trim();
+    const category = String(body.category || '중식').trim();
+
+    try {
+      const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
+      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 500,
+          temperature: 0.7,
+          system: '당신은 서울 맛집 추천 전문가입니다. 반드시 JSON 배열만 반환하고 다른 텍스트는 포함하지 마세요.',
+          messages: [{
+            role: 'user',
+            content: `위치: ${location}, 카테고리: ${category}\n\n위 위치 근처 ${category} 맛집 3곳을 추천해주세요. 아래 JSON 형식으로만 답변하세요:\n[{"name":"식당명","distance":"도보 X분","note":"한 줄 특징"},{"name":"식당명","distance":"도보 X분","note":"한 줄 특징"},{"name":"식당명","distance":"도보 X분","note":"한 줄 특징"}]`
+          }]
+        })
+      });
+
+      if (!claudeRes.ok) throw new Error(await claudeRes.text());
+      const data = await claudeRes.json();
+      const text = extractClaudeText(data);
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('no_json');
+      const places = JSON.parse(jsonMatch[0]).slice(0, 3).map(p => ({
+        category,
+        name: String(p.name || ''),
+        distance: String(p.distance || ''),
+        note: String(p.note || ''),
+        source: 'claude'
+      }));
+      sendJson(res, 200, { usedClaude: true, keySource, model: data.model || model, places });
+    } catch (error) {
+      sendJson(res, 200, { usedClaude: false, keySource: 'demo', places: fallbackLunchPlaces(category) });
     }
     return;
   }
@@ -269,6 +360,53 @@ function extractClaudeText(data) {
     .filter(Boolean)
     .join('\n')
     .trim();
+}
+
+async function fetchKakaoLunchPlaces({ apiKey, location, category }) {
+  const headers = { Authorization: `KakaoAK ${apiKey}` };
+  const origin = await fetchKakaoLocationCenter(location, headers);
+  const params = new URLSearchParams({
+    query: `${category} 맛집`,
+    category_group_code: 'FD6',
+    size: '10',
+    sort: origin ? 'distance' : 'accuracy'
+  });
+
+  if (origin) {
+    params.set('x', origin.x);
+    params.set('y', origin.y);
+    params.set('radius', '2000');
+  } else {
+    params.set('query', `${location} ${category} 맛집`);
+  }
+
+  const searchRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?${params.toString()}`, { headers });
+  if (!searchRes.ok) throw new Error('kakao_place_search_failed');
+  const data = await searchRes.json();
+  const docs = Array.isArray(data.documents) ? data.documents : [];
+  return docs.slice(0, 3).map(place => ({
+    category,
+    name: place.place_name || '이름 없음',
+    distance: place.distance ? `${(Number(place.distance) / 1000).toFixed(1)}km` : '거리 정보 없음',
+    note: [place.road_address_name || place.address_name, place.phone].filter(Boolean).join(' · ') || 'Kakao Local 검색 결과',
+    url: place.place_url || '',
+    source: 'kakao'
+  }));
+}
+
+async function fetchKakaoLocationCenter(location, headers) {
+  const params = new URLSearchParams({ query: location, size: '1' });
+  const res = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?${params.toString()}`, { headers });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const first = Array.isArray(data.documents) ? data.documents[0] : null;
+  if (!first?.x || !first?.y) return null;
+  return { x: first.x, y: first.y };
+}
+
+function fallbackLunchPlaces(category) {
+  const exact = sampleLunchOptions.filter(place => place.category === category);
+  return (exact.length ? exact : sampleLunchOptions).slice(0, 3);
 }
 
 async function serveStatic(pathname, res) {
