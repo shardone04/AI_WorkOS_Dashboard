@@ -415,66 +415,54 @@ function initMeetingOpenAiKeyPanel() {
 
 
 function waitForGoogle(cb, tries = 0) {
-  if (window.google?.accounts?.id) { cb(); return; }
-  if (tries > 30) return;
+  if (window.google?.accounts?.oauth2) { cb(); return; }
+  if (tries > 30) {
+    showToast('Google 로그인', 'Google 라이브러리 로딩 실패. 새로고침 후 시도하세요.', 'error');
+    return;
+  }
   setTimeout(() => waitForGoogle(cb, tries + 1), 100);
 }
 
 function initGoogleAuth() {
   const btn = document.getElementById('google-auth-btn');
   if (!btn) return;
-
-  btn.addEventListener('click', () => {
-    const clientId = FinalRuntime.config.googleClientId;
-    if (!clientId) {
-      showToast('Google 로그인', 'GOOGLE_CLIENT_ID가 설정되지 않았습니다. Railway Variables를 확인하세요.', 'error', 4000);
-      return;
-    }
-    waitForGoogle(() => {
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: onGoogleSignIn,
-        auto_select: false,
-        cancel_on_tap_outside: true
-      });
-      google.accounts.id.prompt(notification => {
-        // One Tap 차단 시 OAuth2 팝업 폴백
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          if (!window.google?.accounts?.oauth2) return;
-          google.accounts.oauth2.initTokenClient({
-            client_id: clientId,
-            scope: 'openid email profile',
-            callback: async resp => {
-              if (resp.error) { showToast('Google 로그인 실패', resp.error, 'error'); return; }
-              try {
-                const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                  headers: { Authorization: `Bearer ${resp.access_token}` }
-                });
-                const p = await r.json();
-                onGoogleSignIn({ _direct: true, name: p.name, email: p.email, picture: p.picture });
-              } catch { showToast('Google 로그인 실패', '사용자 정보 오류', 'error'); }
-            }
-          }).requestAccessToken();
-        }
-      });
-    });
-  });
-
+  btn.addEventListener('click', () => waitForGoogle(doGoogleOAuth));
   updateHeaderIdentity();
 }
 
-function onGoogleSignIn(response) {
-  let name, email, picture;
-  if (response._direct) {
-    name = response.name; email = response.email; picture = response.picture || '';
-  } else {
-    const p = decodeJwt(response.credential);
-    name = p.name || p.email; email = p.email || ''; picture = p.picture || '';
+function doGoogleOAuth() {
+  const clientId = (FinalRuntime.config.googleClientId || '').trim();
+  if (!clientId) {
+    showToast('Google 로그인', 'GOOGLE_CLIENT_ID가 설정되지 않았습니다.', 'error', 4000);
+    return;
   }
-  FinalRuntime.currentUser = { name, email, picture, provider: 'google' };
-  saveToLocalStorage('currentUser', FinalRuntime.currentUser);
-  updateHeaderIdentity();
-  showToast('Google 로그인 완료', `${name} 계정으로 접속했습니다.`, 'success');
+  google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'openid email profile',
+    callback: async resp => {
+      if (resp.error) {
+        showToast('Google 로그인 실패', resp.error_description || resp.error, 'error');
+        return;
+      }
+      try {
+        const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: 'Bearer ' + resp.access_token }
+        });
+        const p = await r.json();
+        FinalRuntime.currentUser = {
+          name:     p.name    || p.email || 'Google User',
+          email:    p.email   || '',
+          picture:  p.picture || '',
+          provider: 'google'
+        };
+        saveToLocalStorage('currentUser', FinalRuntime.currentUser);
+        updateHeaderIdentity();
+        showToast('로그인 완료', FinalRuntime.currentUser.name + ' 계정으로 접속했습니다.', 'success');
+      } catch (err) {
+        showToast('Google 로그인 실패', '사용자 정보를 가져오지 못했습니다.', 'error');
+      }
+    }
+  }).requestAccessToken({ prompt: 'consent' });
 }
 
 
