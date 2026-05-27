@@ -216,6 +216,48 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/claude/meeting-summary') {
+    const body = await readJson(req);
+    const userApiKey = typeof body.userClaudeApiKey === 'string' ? body.userClaudeApiKey.trim() : '';
+    const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY;
+    const keySource = userApiKey ? 'user' : process.env.ANTHROPIC_API_KEY ? 'railway' : 'demo';
+    const transcript = String(body.transcript || '').slice(0, 8000);
+
+    if (!apiKey || !transcript) {
+      sendJson(res, 200, { usedClaude: false, keySource: 'demo', markdown: '' });
+      return;
+    }
+
+    try {
+      const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
+      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 800,
+          temperature: 0.2,
+          system: '당신은 회의 내용을 분석하고 Markdown 형식의 회의록을 작성하는 전문가입니다. 반드시 한국어로 Markdown 형식으로만 응답하세요.',
+          messages: [{
+            role: 'user',
+            content: `아래 회의 내용을 분석하여 Markdown 형식의 회의록을 작성해주세요.\n\n## 회의 내용:\n${transcript}\n\n## 출력 형식:\n# 회의 요약\n## 주요 결정사항\n## 액션 아이템\n## 다음 단계`
+          }]
+        })
+      });
+      if (!claudeRes.ok) throw new Error(await claudeRes.text());
+      const data = await claudeRes.json();
+      const markdown = extractClaudeText(data);
+      sendJson(res, 200, { usedClaude: Boolean(markdown), keySource, model: data.model || model, markdown });
+    } catch (error) {
+      sendJson(res, 200, { usedClaude: false, keySource: 'demo', markdown: '' });
+    }
+    return;
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/claude/chat') {
     const body = await readJson(req, 512 * 1024);
     const userApiKey = typeof body.userClaudeApiKey === 'string' ? body.userClaudeApiKey.trim() : '';

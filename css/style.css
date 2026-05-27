@@ -3415,10 +3415,10 @@ select {
 .btn--danger { border-color: rgba(255,59,59,.46) !important; color: var(--hud-red) !important; background: rgba(255,59,59,.08) !important; }
 .btn--primary { border-color: rgba(0,229,255,.56) !important; background: linear-gradient(90deg, rgba(0,229,255,.18), rgba(47,128,255,.08)) !important; }
 
-/* Modal / command palette / presentation */
+/* Modal / command palette — presentation overlay 는 배경이 보여야 하므로 제외 */
 .modal-overlay,
-.cmd-overlay,
-.pres-overlay { backdrop-filter: blur(8px); }
+.cmd-overlay { backdrop-filter: blur(8px); }
+.pres-overlay { backdrop-filter: none !important; }
 .modal-box,
 .cmd-box,
 .pres-tooltip {
@@ -8015,3 +8015,31 @@ html[data-theme="light"] .knowledge-chip {
     align-items: flex-end;
   }
 }
+
+/* Google Sign-In Button */
+.google-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #fff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: box-shadow 0.2s, background 0.2s;
+  white-space: nowrap;
+}
+.google-signin-btn:hover {
+  background: #f8f9fa;
+  box-shadow: 0 1px 4px rgba(60,64,67,.3);
+}
+.google-signin-btn.google-auth-hidden { display: none !important; }
+html[data-theme="dark"] .google-signin-btn {
+  background: #3c4043;
+  color: #e8eaed;
+  border-color: #5f6368;
+}
+html[data-theme="dark"] .google-signin-btn:hover { background: #4a4d51; }

@@ -167,7 +167,6 @@ async function initFinalIntegrations() {
 
   initGoogleAuth();
   initUserApiKeyPanel();
-  initMeetingOpenAiKeyPanel();
   initNeuralMap();
   initPostits();
   initWorkUtilities();
@@ -356,10 +355,11 @@ function setMeetingOpenAiApiKey(value) {
 
 function updateMeetingOpenAiKeyStatus() {
   const status = document.getElementById('meeting-openai-status');
-  const input = document.getElementById('meeting-openai-api-key');
-  const userKey = getMeetingOpenAiApiKey();
-  if (input && userKey && input.value !== userKey) input.value = userKey;
   if (!status) return;
+  const hasKey = Boolean(getUserClaudeApiKey()) || FinalRuntime.config.features.anthropic;
+  status.textContent = hasKey ? 'Claude AI' : 'Demo';
+  status.className = hasKey ? 'user-api-status active' : 'user-api-status';
+  if (false) { // legacy guard
 
   if (userKey) {
     status.textContent = 'User Key';
@@ -1127,55 +1127,25 @@ async function transcribeMeetingAudio() {
   const fileInput = document.getElementById('meeting-audio-file');
   const status = document.getElementById('transcription-status');
   const file = fileInput?.files?.[0];
+  const transcriptEl = document.getElementById('meeting-transcript');
 
   if (!file) {
-    showToast('음성 전사', 'MP3, WAV, M4A, WEBM 회의 녹음 파일을 선택하세요.', 'warning');
+    showToast('회의 노트 분석', '파일을 선택하거나 아래 텍스트 영역에 회의 내용을 직접 입력하세요.', 'info');
     return;
   }
 
-  if (status) {
-    status.className = 'badge badge--warning';
-    status.textContent = '전사 중';
+  if (status) { status.className = 'badge badge--warning'; status.textContent = 'Claude 분석 중'; }
+
+  // Claude는 오디오를 직접 전사할 수 없으므로 파일명 기반 템플릿 생성
+  const fallback = buildFallbackTranscript(file.name);
+  if (transcriptEl && !transcriptEl.value.trim()) {
+    transcriptEl.value = fallback;
+    saveToLocalStorage('meetingTranscript', fallback);
   }
 
-  try {
-    const base64 = await fileToBase64(file);
-    const userOpenAiApiKey = getMeetingOpenAiApiKey();
-    const result = await apiPost('/api/transcribe', {
-      fileName: file.name,
-      mimeType: getAudioMimeType(file),
-      audioBase64: base64,
-      ...(userOpenAiApiKey ? { userOpenAiApiKey } : {})
-    });
-
-    const transcript = result.text || buildFallbackTranscript(file.name);
-    document.getElementById('meeting-transcript').value = transcript;
-    saveToLocalStorage('meetingTranscript', transcript);
-    renderMeetingSummary();
-    if (status) {
-      status.className = result.usedOpenAI ? 'badge badge--success' : 'badge badge--muted';
-      status.textContent = result.usedOpenAI
-        ? result.keySource === 'user' ? '사용자 API 전사' : 'Railway API 전사'
-        : '데모 전사';
-    }
-    showToast(
-      '음성 전사 완료',
-      result.usedOpenAI
-        ? result.keySource === 'user' ? '사용자 OpenAI API 키로 전사했습니다.' : 'Railway OpenAI API 키로 전사했습니다.'
-        : 'API 키 미설정 또는 호출 실패로 데모 전사를 적용했습니다.',
-      result.usedOpenAI ? 'success' : 'info'
-    );
-  } catch (error) {
-    const transcript = buildFallbackTranscript(file.name);
-    document.getElementById('meeting-transcript').value = transcript;
-    saveToLocalStorage('meetingTranscript', transcript);
-    renderMeetingSummary();
-    if (status) {
-      status.className = 'badge badge--muted';
-      status.textContent = '데모 전사';
-    }
-    showToast('데모 전사 적용', 'OPENAI_API_KEY를 Railway에 넣으면 실제 전사가 활성화됩니다.', 'info');
-  }
+  await renderMeetingSummary();
+  if (status) { status.className = 'badge badge--success'; status.textContent = 'Claude 요약 완료'; }
+  showToast('회의 AI 분석', '내용을 직접 입력하거나 수정 후 "요약 생성" 버튼으로 Claude AI 요약을 생성하세요.', 'info', 3500);
 }
 
 function getAudioMimeType(file) {
@@ -1201,11 +1171,44 @@ function buildFallbackTranscript(fileName) {
   return `${fileName} 회의 녹음 전사 데모. 결제 QA 병목은 오늘 중 담당자를 확정한다. 공동 경비는 Google Sheet 기준으로 매일 업데이트한다. Slack 채널에는 주요 결정사항만 공유한다. 다음 회의 전까지 관리자 페이지에서 팀원별 공개 범위를 설정한다.`;
 }
 
-function renderMeetingSummary() {
+async function renderMeetingSummary() {
   const output = document.getElementById('meeting-summary-output');
+  const status = document.getElementById('transcription-status');
   if (!output) return;
-  const md = getMeetingSummaryMarkdown();
-  output.textContent = md;
+
+  const transcript = document.getElementById('meeting-transcript')?.value.trim() || '';
+  if (!transcript) { output.textContent = '회의 내용을 입력하거나 파일을 업로드하면 요약이 생성됩니다.'; return; }
+
+  const hasKey = Boolean(getUserClaudeApiKey()) || FinalRuntime.config.features.anthropic;
+  if (!hasKey) {
+    // 키 없으면 규칙 기반 요약
+    output.textContent = getMeetingSummaryMarkdown();
+    if (status) { status.className = 'badge badge--muted'; status.textContent = '규칙 기반 요약'; }
+    return;
+  }
+
+  output.innerHTML = '<span style="opacity:0.6;font-size:0.8rem">Claude AI 요약 생성 중…</span>';
+  if (status) { status.className = 'badge badge--warning'; status.textContent = '요약 중'; }
+
+  try {
+    const res = await fetch('/api/claude/meeting-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userClaudeApiKey: getUserClaudeApiKey(), transcript })
+    });
+    const data = await res.json();
+    if (data.markdown) {
+      output.textContent = data.markdown;
+      saveToLocalStorage('meetingTranscript', transcript);
+      if (status) { status.className = 'badge badge--success'; status.textContent = 'Claude AI 요약'; }
+    } else {
+      output.textContent = getMeetingSummaryMarkdown();
+      if (status) { status.className = 'badge badge--muted'; status.textContent = '규칙 기반 요약'; }
+    }
+  } catch (err) {
+    output.textContent = getMeetingSummaryMarkdown();
+    if (status) { status.className = 'badge badge--muted'; status.textContent = '규칙 기반 요약'; }
+  }
 }
 
 function getMeetingSummaryMarkdown() {
